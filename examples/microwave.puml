@@ -1,0 +1,104 @@
+@startuml
+ state "Microwave" as Microwave {
+   [*] --> Microwave_door
+   state "door" as Microwave_door {
+       state "open" as Microwave_door_open {
+              }
+       state "closed" as Microwave_door_closed {
+              }
+       [*] --> Microwave_door_closed
+       }
+   [*] --> Microwave_power
+   state "power" as Microwave_power {
+       state "off" as Microwave_power_off {
+              }
+       state "on" as Microwave_power_on {
+             [*] --> Microwave_power_on_clock
+             state "clock" as Microwave_power_on_clock {
+                     state "ticking" as Microwave_power_on_clock_ticking {
+                                }
+                     state "flashing" as Microwave_power_on_clock_flashing {
+                               state "on" as Microwave_power_on_clock_flashing_region_region_0_on {
+                                            }
+                               state "off" as Microwave_power_on_clock_flashing_region_region_0_off {
+                                            }
+                               }
+                     [*] --> Microwave_power_on_clock_flashing_region_region_0_off
+                     }
+             [*] --> Microwave_power_on_light
+             state "light" as Microwave_power_on_light {
+                     state "off" as Microwave_power_on_light_off {
+                                }
+                     state "on" as Microwave_power_on_light_on {
+                                }
+                     [*] --> Microwave_power_on_light_off
+                     }
+             [*] --> Microwave_power_on_oven_light
+             state "oven_light" as Microwave_power_on_oven_light {
+                     state "on" as Microwave_power_on_oven_light_on {
+                                }
+                     state "off" as Microwave_power_on_oven_light_off {
+                                }
+                     [*] --> Microwave_power_on_oven_light_off
+                     }
+             [*] --> Microwave_power_on_magnetron
+             state "magnetron" as Microwave_power_on_magnetron {
+                     state "off" as Microwave_power_on_magnetron_off {
+                                }
+                     state "on" as Microwave_power_on_magnetron_on {
+                                }
+                     [*] --> Microwave_power_on_magnetron_off
+                     }
+             [*] --> Microwave_power_on_turntable
+             state "turntable" as Microwave_power_on_turntable {
+                     state "rotating" as Microwave_power_on_turntable_rotating {
+                               state "clockwise" as Microwave_power_on_turntable_rotating_region_region_0_clockwise {
+                                            }
+                               state "counterclockwise" as Microwave_power_on_turntable_rotating_region_region_0_counterclockwise {
+                                            }
+                               [*] --> Microwave_power_on_turntable_rotating_region_region_0_clockwise
+                               }
+                     state "off" as Microwave_power_on_turntable_off {
+                                }
+                     [*] --> Microwave_power_on_turntable_off
+                     }
+             [*] --> Microwave_power_on_exhaust_fan
+             state "exhaust_fan" as Microwave_power_on_exhaust_fan {
+                     state "on" as Microwave_power_on_exhaust_fan_on {
+                               state "low" as Microwave_power_on_exhaust_fan_on_region_region_0_low {
+                                            }
+                               state "medium" as Microwave_power_on_exhaust_fan_on_region_region_0_medium {
+                                            }
+                               state "high" as Microwave_power_on_exhaust_fan_on_region_region_0_high {
+                                            }
+                               }
+                     state "speed_choice" as  Microwave_power_on_exhaust_fan_speed_choice <<choice>>
+                     Microwave_power_on_exhaust_fan_speed_choice --> Microwave_power_on_exhaust_fan_on_region_region_0_high : [speed_is_high] 
+                     Microwave_power_on_exhaust_fan_speed_choice --> Microwave_power_on_exhaust_fan_on_region_region_0_medium : [speed_is_medium] 
+                     Microwave_power_on_exhaust_fan_speed_choice --> Microwave_power_on_exhaust_fan_on_region_region_0_low 
+                     state "off" as Microwave_power_on_exhaust_fan_off {
+                                }
+                     [*] --> Microwave_power_on_exhaust_fan_on_region_region_0_low
+                     }
+             }
+       [*] --> Microwave_power_on
+       }
+   }
+ note top of Microwave: "An example of a state machine for a microwave that doesn't use submachines\n    " Microwave_door_open --> Microwave_door_closed: DoorCloseEvent
+ Microwave_door_closed --> Microwave_door_open: DoorOpenEvent
+ Microwave_power_on_clock_flashing_region_region_0_on --> Microwave_power_on_clock_flashing_region_region_0_off: after<0:00:01>
+ Microwave_power_on_clock_flashing_region_region_0_off --> Microwave_power_on_clock_flashing_region_region_0_on: after<0:00:01>
+ Microwave_power_on_clock_flashing --> Microwave_power_on_clock_ticking: ClockSetEvent
+ Microwave_power_on_clock_ticking --> Microwave_power_on_clock_ticking: after<0:00:01>
+ Microwave_power_on_light_off --> Microwave_power_on_light_on: completion
+ Microwave_power_on_light_on --> Microwave_power_on_light_off: DoorCloseEvent
+ Microwave_power_on_oven_light_off --> Microwave_power_on_oven_light_on: OvenLightOnEvent
+ Microwave_power_on_oven_light_on --> Microwave_power_on_oven_light_off: OvenLightOffEvent
+ Microwave_power_on_turntable_off --> Microwave_power_on_turntable_rotating: CookStartEvent
+ Microwave_power_on_turntable_rotating --> Microwave_power_on_turntable_off: completion
+ Microwave_power_on_exhaust_fan_on --> Microwave_power_on_exhaust_fan_off: ExhaustFanOffEvent
+ Microwave_power_on_exhaust_fan_off --> Microwave_power_on_exhaust_fan_speed_choice: ExhaustFanOnEvent
+ Microwave_power_on_exhaust_fan_on --> Microwave_power_on_exhaust_fan_speed_choice: ExhaustFanOnEvent
+ Microwave_power_off --> Microwave_power_on: power_on
+ Microwave_power_on --> Microwave_power_off: power_off
+ @enduml
