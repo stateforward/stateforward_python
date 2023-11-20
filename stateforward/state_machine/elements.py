@@ -9,7 +9,7 @@ class AsyncStateMachine(
     elements.CompositeState,
     preprocessor=StateMachinePreprocessor,
     validator=StateMachineValidator,
-    # interpreter=AsyncStateMachineInterpreter,
+    interpreter=AsyncStateMachineInterpreter,
 ):
     """
     Asynchronous state machine implementation that handles behaviors and state transitions.

@@ -647,7 +647,7 @@ QueueType = Union[queue.Queue, multiprocessing.Queue, asyncio.Queue]
 ActiveType = Union[threading.Event, multiprocessing.Event, asyncio.Event]
 
 
-class Behavior(model.Model, Generic[T]):
+class Behavior(model.Model):  # , Generic[T]):
     """
     Represents the behavior associated with states in a state machine.
 

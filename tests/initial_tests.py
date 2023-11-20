@@ -40,6 +40,7 @@ async def test_initial_multiple_regions():
         regions = tuple(getattr(sm, f"r{x}") for x in range(x))
         expect.only(*(r.s1 for r in regions)).was_entered()
         expect.only(*(r.initial.transition for r in regions)).was_executed()
+        await sm.interpreter.terminate()
 
 
 @pytest.mark.asyncio
@@ -56,3 +57,4 @@ async def test_initial_to_nested_state():
     await sm.interpreter.start()
     expect.only(sm.s1, sm.s1.s2, sm.s1.s2.s3).was_entered()
     expect.only(sm.initial.transition).was_executed()
+    await sm.interpreter.terminate()

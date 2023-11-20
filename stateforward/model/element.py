@@ -116,18 +116,6 @@ def is_subtype(
         check for a subclass relationship. If `value` is not a class but an
         instance, it retrieves the class of `value` using `value.__class__` before
         performing the check.
-
-    Examples:
-        >>> class Parent: pass
-        >>> class Child(Parent): pass
-        >>> is_subtype(Child, Parent)
-        True
-        >>> is_subtype(Child(), Parent)
-        True
-        >>> is_subtype(Parent, Child)
-        False
-        >>> is_subtype(Parent(), (Child, Parent))
-        True
     """
     return issubclass(value if isclass(value) else value.__class__, types)
 
@@ -151,18 +139,6 @@ def is_element(value: Any) -> bool:
         the codebase. This function makes use of the `is_subtype` utility function
         to carry out the subclass check.
 
-    Examples:
-        Assuming there is a class named `Element` defined in the codebase:
-
-        >>> class MyElement(Element): pass
-        >>> is_element(MyElement)
-        True
-        >>> is_element(MyElement())
-        True
-        >>> is_element(object)
-        False
-        >>> is_element(object())
-        False
     """
     return is_subtype(value, (Element,))
 
@@ -317,25 +293,21 @@ def specialize(
                         )
                     ]
                 set_attribute(element, name, value)
-        for name, value in derived_class.__dict__.items():
-            if (
-                name not in ElementInterface.__annotations__
-                and is_element(value)
-                and has_descendant(base_class, value)
-            ):
-                set_attribute(
-                    derived_class,
-                    name,
-                    element_map[
-                        value.qualified_name.replace(
-                            base_class.qualified_name, derived_class.qualified_name, 1
-                        )
-                    ],
-                )
-
-
-class Alias(str):
-    pass
+        # for name, value in derived_class.__dict__.items():
+        #     if (
+        #         name not in ElementInterface.__annotations__
+        #         and is_element(value)
+        #         and has_descendant(base_class, value)
+        #     ):
+        #         set_attribute(
+        #             derived_class,
+        #             name,
+        #             element_map[
+        #                 value.qualified_name.replace(
+        #                     base_class.qualified_name, derived_class.qualified_name, 1
+        #                 )
+        #             ],
+        #         )
 
 
 class Element(ElementInterface[T]):

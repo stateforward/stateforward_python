@@ -1,32 +1,39 @@
 import stateforward as sf
-from typing import Type, Sequence, TypeVar, Union
+from stateforward.state_machine.log import log
+from typing import Type, TypeVar
 import inspect
 from stateforward.state_machine.generators.cursor import Cursor
 
 T = TypeVar("T")
 
-"""
-skinparam linetype ortho
-skinparam arrowColor #21c55d
-skinparam backgroundColor #000000
-skinparam ActivityBarColor #21c55d
-<style>
-circle {
-    backgroundColor #21c55d
-}
-</style>
-skinparam State {
-    backgroundColor black
-    FontColor #21c55d
-    borderColor #21c55d
-}
-"""
+logger = log.getLogger("plantuml")
+
+
+class PlantUMLStyle:
+    pass
 
 
 class PlantUMLGenerator(sf.model.Visitor):
     def __init__(self, direction: str = "LR", background_color: str = "#000000"):
         super().__init__()
-        self.cursor = Cursor()
+        self.cursor = Cursor(
+            """@startuml
+skinparam linetype ortho
+skinparam arrowColor white
+skinparam backgroundColor #000000
+skinparam ActivityBarColor white
+<style>
+circle {
+    backgroundColor white
+}
+</style>
+skinparam State {
+    backgroundColor black
+    FontColor white
+    borderColor white
+}
+"""
+        )
         self.direction = direction
 
     def visit_state_machine(self, state_machine: Type[sf.StateMachine], cursor: Cursor):
@@ -52,13 +59,11 @@ class PlantUMLGenerator(sf.model.Visitor):
         cursor: Cursor = None,
     ):
         region = composite_state.region
-        print(cursor.indent)
         with cursor.auto_indent(indent=2) as _cursor:
             regions = tuple(region.elements())
             if regions:
                 for index, region in enumerate(region.elements()):
                     self.visit_region(region, _cursor)
-        print(cursor.indent)
         cursor.append("}\n")
         docs = composite_state.__doc__
         if docs is not None:
@@ -156,7 +161,6 @@ class PlantUMLGenerator(sf.model.Visitor):
         return True
 
     def generate(self, model: type[sf.Model]) -> str:
-        self.cursor.append("@startuml\n")
         self.visit_element(model, self.cursor)
         self.cursor.append("@enduml\n")
         print(str(self.cursor))

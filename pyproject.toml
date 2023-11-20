@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.10"
 pytest = "^7.4.3"
 pytest-asyncio = "^0.21.1"
+picologging = "^0.9.3"
 
 
 

@@ -1,64 +1,18 @@
 @startuml
- state "Complete" as Complete {
-   state "s0" as Complete_region_region_0_s0 {
-        }
-   state "s1" as Complete_region_region_0_s1 {
-       [*] --> Complete_region_region_0_s1_r1
-       state "r1" as Complete_region_region_0_s1_r1 {
-             state "s1" as Complete_region_region_0_s1_r1_s1 {
-                      }
-             state "s2" as Complete_region_region_0_s1_r1_s2 {
-                      }
-             }
-       [*] --> Complete_region_region_0_s1_r2
-       state "r2" as Complete_region_region_0_s1_r2 {
-             state "s1" as Complete_region_region_0_s1_r2_s1 {
-                      }
-             state "s2" as Complete_region_region_0_s1_r2_s2 {
-                      }
-             }
-       }
-   state "s2<submachine>" as Complete_region_region_0_s2 {
-       state "s2" as Complete_region_region_0_s2_submachine_region_region_0_s2 {
-             [*] --> Complete_region_region_0_s2_submachine_region_region_0_s2_r1
-             state "r1" as Complete_region_region_0_s2_submachine_region_region_0_s2_r1 {
-                     state "s1" as Complete_region_region_0_s2_submachine_region_region_0_s2_r1_s1 {
-                                }
-                     state "s2" as Complete_region_region_0_s2_submachine_region_region_0_s2_r1_s2 {
-                                }
-                     [*] --> Complete_region_region_0_s2_submachine_region_region_0_s2_r1_s1
-                     }
-             [*] --> Complete_region_region_0_s2_submachine_region_region_0_s2_r2
-             state "r2" as Complete_region_region_0_s2_submachine_region_region_0_s2_r2 {
-                     state "s1" as Complete_region_region_0_s2_submachine_region_region_0_s2_r2_s1 {
-                                }
-                     state "s2" as Complete_region_region_0_s2_submachine_region_region_0_s2_r2_s2 {
-                                }
-                     [*] --> Complete_region_region_0_s2_submachine_region_region_0_s2_r2_s2
-                     }
-             }
-       [*] --> Complete_region_region_0_s2_submachine_region_region_0_s2
-       state "entry_point_to_r2_s2" as  Complete_region_region_0_s2_submachine_region_region_0_entry_point_to_r2_s2 <<entryPoint>>
-       Complete_region_region_0_s2_submachine_region_region_0_entry_point_to_r2_s2 --> Complete_region_region_0_s2_submachine_region_region_0_s2_r2_s2 
-       state "entry_point_to_r1_s2_and_r2_s1" as  Complete_region_region_0_s2_submachine_region_region_0_entry_point_to_r1_s2_and_r2_s1 <<entryPoint>>
-       Complete_region_region_0_s2_submachine_region_region_0_entry_point_to_r1_s2_and_r2_s1 --> Complete_region_region_0_s2_submachine_region_region_0_s2_r1_s2 
-       Complete_region_region_0_s2_submachine_region_region_0_entry_point_to_r1_s2_and_r2_s1 --> Complete_region_region_0_s2_submachine_region_region_0_s2_r2_s1 
-       state "exit_point_from_r2_s2" as  Complete_region_region_0_s2_submachine_region_region_0_exit_point_from_r2_s2 <<exitPoint>>
-       }
-   [*] --> Complete_region_region_0_s0
-   state "s0_fork" as  Complete_region_region_0_s0_fork <<fork>>
-   Complete_region_region_0_s0_fork --> Complete_region_region_0_s1_r1_s1 
-   Complete_region_region_0_s0_fork --> Complete_region_region_0_s1_r2_s2 
-   state "s1_join" as  Complete_region_region_0_s1_join <<join>>
-   Complete_region_region_0_s1_join --> Complete_region_region_0_s2 
-   }
- Complete_region_region_0_s1_r1_s1 --> Complete_region_region_0_s1_r1_s2: e1
- Complete_region_region_0_s1_r1_s2 --> Complete_region_region_0_s1_r1_s1: after<0:00:01>
- Complete_region_region_0_s1_r2_s2 --> Complete_region_region_0_s1_r2_s1: e2
- Complete_region_region_0_s1_r2_s1 --> Complete_region_region_0_s1_r2_s2: when<<lambda>>
- Complete_region_region_0_s2_submachine_region_region_0_s2_r2_s2 --> Complete_region_region_0_s2_submachine_region_region_0_exit_point_from_r2_s2: completion
- Complete_region_region_0_s1_r1_s1 --> Complete_region_region_0_s1_join: completion
- Complete_region_region_0_s1_r2_s1 --> Complete_region_region_0_s1_join: completion
- Complete_region_region_0_s1 --> Complete_region_region_0_s2_submachine_region_region_0_s2: e3
- Complete_region_region_0_s0 --> Complete_region_region_0_s0_fork: e2
- @enduml
+skinparam linetype ortho
+skinparam arrowColor white
+skinparam backgroundColor #000000
+skinparam ActivityBarColor white
+<style>
+circle {
+    backgroundColor white
+}
+</style>
+skinparam State {
+    backgroundColor black
+    FontColor white
+    borderColor white
+}
+ state "AsyncStateMachine" as AsyncStateMachine {
+    }
+ note top of AsyncStateMachine: "Asynchronous state machine implementation that handles behaviors and state transitions.\n\n    This class extends the generic Behavior and CompositeState classes to facilitate\n    concurrent operations within the state machine. The AsyncStateMachine allows for the\n    definition of states and transitions and manages the asynchronous execution of behavior\n    activities triggered by events.\n\n    Attributes:\n        submachine_state (State): The reference to the submachine state if this state machine\n                                  is used as a submachine within another state machine.\n\n    Properties:\n        state (tuple[State]): A tuple containing references to all the currently active states\n                              within the state machine.\n    " @enduml

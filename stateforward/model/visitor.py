@@ -45,10 +45,10 @@ class Visitor:
                     None,
                 )
                 if method not in (None, Visitor.visit_element):
-                    if method(element.type, *args, **kwargs):
+                    if method(element, *args, **kwargs):
                         return
                     break
-            self.visit_owned_elements(element.type, *args, **kwargs)
+            self.visit_owned_elements(element, *args, **kwargs)
 
     def visit_owned_elements(self, element: Type[model.Element], *args, **kwargs):
         for owned_element in element.owned_elements:

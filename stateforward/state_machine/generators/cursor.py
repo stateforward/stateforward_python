@@ -3,8 +3,8 @@ from contextlib import contextmanager
 
 
 class Cursor(list[Union[str, "Cursor"]]):
-    def __init__(self, indent: int = 0):
-        super().__init__()
+    def __init__(self, *data, indent: int = 0):
+        super().__init__(data)
         self.indent = indent
 
     def __str__(self):

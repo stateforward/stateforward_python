@@ -1,6 +1,8 @@
 from stateforward import elements, model
 from typing import Any, Union, TypeVar, Coroutine
 import asyncio
+from stateforward.state_machine.log import log
+
 
 T = TypeVar("T")
 
@@ -12,14 +14,17 @@ class AsyncBehaviorInterpreter(model.Interpreter[asyncio.Future], queue=asyncio.
     loop: asyncio.AbstractEventLoop
     idle: asyncio.Event
     tasks: dict[model.Element, asyncio.Future]
+    log: log
 
     def __init__(self):
         super().__init__()
         self.idle = asyncio.Event()
         self.idle.set()
         self.deferred = []
+        self.log = log.getLogger(self.qualified_name)
 
     def dispatch(self, event: elements.Event):
+        self.log.debug(f"Dispatching {event.qualified_name}")
         # clear the idle flag
         self.idle.clear()
         # put the event in the queue
@@ -30,6 +35,7 @@ class AsyncBehaviorInterpreter(model.Interpreter[asyncio.Future], queue=asyncio.
         self,
     ) -> asyncio.Task:
         if self not in self.active:
+            self.log.debug(f"starting")
             self.idle.clear()
             self.loop = asyncio.get_running_loop()
             run = self.loop.create_task(

@@ -1,9 +1,9 @@
 import asyncio
 from stateforward import elements, model
+from stateforward.state_machine.log import log
 from stateforward.state_machine.interpreters.asynchronous.behavior_interpreter import (
     AsyncBehaviorInterpreter,
 )
-from functools import partial
 
 
 class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
@@ -49,6 +49,9 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         # could possibly improve this with using state in reverse
         results = await asyncio.gather(
             *(self.process_region(region, event) for region in self.model.region)
+        )
+        self.log.debug(
+            f"processed event {event.qualified_name} with results {tuple(result.value for result in results)}"
         )
         if model.Processing.complete in results:
             return model.Processing.complete
@@ -267,6 +270,9 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         event: elements.Event,
         kind: elements.EntryKind,
     ):
+        self.log.debug(
+            f'entering state machine "{state_machine.qualified_name}" with {state_machine.region.length} regions'
+        )
         return await asyncio.gather(
             *(self.enter_region(region, event, kind) for region in state_machine.region)
         )
@@ -274,6 +280,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def enter_region(
         self, region: elements.Region, event: elements.Event, kind: elements.EntryKind
     ):
+        self.log.debug(f"entering region {region.qualified_name}")
         states = ()
         if kind == elements.EntryKind.default:
             if region.initial is None:
@@ -339,6 +346,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
             )
 
     async def run(self, machine):
+        self.log.debug(f'running state machine "{machine.name}"')
         await self.enter_state_machine(machine, None, elements.EntryKind.default)
         return await super().run(machine)
 

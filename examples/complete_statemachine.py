@@ -43,7 +43,7 @@ class Sample(sf.AsyncStateMachine):
     r2_s2_to_exit_point = sf.transition(source=s2.r2.s2, target=exit_point_from_r2_s2)
 
 
-class Complete(sf.AsyncStateMachine):
+class CompleteSM(sf.AsyncStateMachine):
     a1: int = 0
 
     s0 = sf.simple_state("s0")
@@ -86,6 +86,12 @@ class Complete(sf.AsyncStateMachine):
 
 
 if __name__ == "__main__":
-    open("complete_statemachine.puml", "w+").write(
-        (sf.generators.PlantUMLGenerator().generate(Complete))
-    )
+    import asyncio
+
+    async def main():
+        sm = CompleteSM()
+
+        await sm.interpreter.start()
+        print(sm.state)
+
+    asyncio.run(main())

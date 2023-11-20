@@ -5,6 +5,7 @@ from asyncio import Queue as AsyncQueue
 from typing import TYPE_CHECKING
 from stateforward import model
 from stateforward import elements
+from stateforward.state_machine.log import log
 
 
 async def no_async_activity(self, event: "elements.Event"):
@@ -40,11 +41,18 @@ class StateMachinePreprocessor(model.Preprocessor):
         preprocessed (set): A set to keep track of already preprocessed elements to avoid re-processing.
     """
 
+    log: log = log.getLogger("StateMachinePreprocessor")
+
     def preprocess_vertex(self, element: type["elements.Vertex"]):
+        logger = log.getLogger(f"preprocess_vertex({element.qualified_name})")
+        logger.debug(f"finding container")
         container = model.find_ancestor(
             element,
             lambda owned_element: model.is_subtype(owned_element, elements.Region),
         )
+        if container is None:
+            raise ValueError(f"vertex {element.qualified_name} has no container region")
+        logger.debug(f"found container {container.qualified_name}")
         model.set_attribute(element, "container", container)
 
         outgoing = list(element.outgoing.elements()) if element.outgoing else []
@@ -69,7 +77,6 @@ class StateMachinePreprocessor(model.Preprocessor):
             for region in element.region.elements():
                 model.set_attribute(region, "state", element)
                 model.set_attribute(region, "state_machine", None)
-                # model.remove_owned_element(element, region)
 
         self.preprocess_vertex(element)
 
@@ -325,9 +332,10 @@ class StateMachinePreprocessor(model.Preprocessor):
             AsyncStateMachineInterpreter,
         )
 
+        self.log.debug(f"preprocessing state machine {element.qualified_name}")
         self.preprocess_composite_state(element)
-        if element.region.length == 0:
-            raise ValueError(f"state machine {element.qualified_name} has no regions")
+        # if element.region.length == 0:
+        #     raise ValueError(f"state machine {element.qualified_name} has no regions")
         self.preprocess_behavior(element)
         model.sort_collection(
             element.pool,

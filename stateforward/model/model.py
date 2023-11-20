@@ -1,5 +1,5 @@
 from typing import ClassVar, TYPE_CHECKING, Type, Optional
-from stateforward.model.element import Element
+from stateforward.model.element import Element, set_attribute
 from inspect import isclass
 
 if TYPE_CHECKING:
@@ -55,10 +55,10 @@ class Model(Element):
 
     def __init_subclass__(
         cls: type["Model"],
-        preprocessor: Optional[type["Preprocessor"]] = None,
-        validator: Optional[type["Validator"]] = None,
-        processor: Optional[type["Interpreter"]] = None,
-        **kwargs: dict,
+        # preprocessor: Optional[type["Preprocessor"]] = None,
+        # validator: Optional[type["Validator"]] = None,
+        # processor: Optional[type["Interpreter"]] = None,
+        **kwargs,
     ):
         """Initializes the subclass with the provided processors.
 
@@ -76,13 +76,17 @@ class Model(Element):
             **kwargs: Arbitrary keyword arguments that are passed to the base
                 class's `__init_subclass__` method.
         """
+        preprocessor = kwargs.pop("preprocessor", None)
+        validator = kwargs.pop("validator", None)
+        interpreter = kwargs.pop("interpreter", None)
         super().__init_subclass__(**kwargs)
         if cls.preprocessor is not None:
             cls.preprocessor().preprocess(cls)
-        cls.preprocessor = preprocessor or cls.preprocessor
+        set_attribute(cls, "preprocessor", preprocessor or cls.preprocessor)
         if cls.validator is not None:
             cls.validator().validate(cls)
-        cls.validator = validator or cls.validator
+        set_attribute(cls, "validator", validator or cls.validator)
+        set_attribute(cls, "interpreter", interpreter or cls.interpreter)
 
 
 def dump(element, level=0, associated_name=None, max_level=None):

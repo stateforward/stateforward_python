@@ -1,9 +1,12 @@
 from stateforward import model
 from stateforward import elements
+from stateforward.state_machine.log import log
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from stateforward.elements import StateMachine
+
+logger = log.getLogger("StateMachineValidator")
 
 
 class StateMachineValidator(model.Validator):
@@ -17,6 +20,16 @@ class StateMachineValidator(model.Validator):
                 f"Final state {final_state.qualified_name} cannot have do activity"
             )
 
+    def validate_vertex(self, vertex: type[elements.Vertex]):
+        if vertex.container is None or not model.is_subtype(
+            vertex.container, elements.Region
+        ):
+            raise ValueError(
+                f"Vertex {vertex.qualified_name} must be contained in a Region"
+            )
+        if vertex.outgoing.length == 0 and vertex.incoming.length == 0:
+            logger.warning(f"Vertex {vertex.qualified_name} is not unreachable")
+
     def validate_region(self, region: type[elements.Region]):
         if region.state_machine is not None and region.initial is None:
             raise Exception(f"Region {region.qualified_name} must have initial state")
@@ -24,12 +37,6 @@ class StateMachineValidator(model.Validator):
             raise ValueError(
                 f"Region {region.qualified_name} cannot be owned by a state and a state machine"
             )
-
-    # def validate_state(self, state: type[elements.State]):
-    #     if state.submachine is not None and state.region.length > 0:
-    #         raise ValueError(
-    #             f"State {state.qualified_name} is not allowed to have both a submachine and Regions."
-    #         )
 
     def validate_transition(self, transition: type[elements.Transition]):
         if transition.path is None:
