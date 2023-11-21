@@ -51,7 +51,7 @@ class StateMachinePreprocessor(model.Preprocessor):
             lambda owned_element: model.is_subtype(owned_element, elements.Region),
         )
         if container is None:
-            raise ValueError(f"vertex {element.qualified_name} has no container region")
+            logger.error(f"vertex {element.qualified_name} has no container")
         logger.debug(f"found container {container.qualified_name}")
         model.set_attribute(element, "container", container)
 

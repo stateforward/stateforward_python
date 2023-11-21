@@ -154,7 +154,7 @@ class PrintBehavior(sf.Behavior):
 
 class LightSwitch(sf.AsyncStateMachine):
     flashing = False
-    FlashEvent = sf.change(lambda self, event=None: self.model.flashing)
+    FlashEvent = sf.when(lambda self, event=None: self.model.flashing)
 
     class On(sf.State):
         entry = sf.bind(PrintBehavior)

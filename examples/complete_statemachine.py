@@ -89,6 +89,7 @@ if __name__ == "__main__":
     import asyncio
 
     async def main():
+        sf.dump(CompleteSM)
         sm = CompleteSM()
 
         await sm.interpreter.start()
