@@ -8,8 +8,8 @@ class AsyncStateMachine(
     elements.StateMachine,
     elements.CompositeState,
     preprocessor=StateMachinePreprocessor,
-    validator=StateMachineValidator,
-    interpreter=AsyncStateMachineInterpreter,
+    # validator=StateMachineValidator,
+    # interpreter=AsyncStateMachineInterpreter,
 ):
     """
     Asynchronous state machine implementation that handles behaviors and state transitions.
