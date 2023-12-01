@@ -169,7 +169,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
 
         elif isinstance(vertex, elements.FinalState):
             return await self.enter_final_state(vertex, event)
-        return await self.enter_psuedostate(vertex, event)
+        return await self.enter_pseudostate(vertex, event)
 
     async def enter_final_state(self, final_state: elements.FinalState):
         await self.terminate()
@@ -287,11 +287,12 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
             if region.initial is None:
                 return states
             self.add_active(region)
-            return await self.enter_psuedostate(region.initial, event)
+            return await self.enter_pseudostate(region.initial, event)
         self.add_active(region)
         return states
 
     async def leave_region(self, region: elements.Region, event: elements.Event):
+        self.log.debug(f"leaving region \"{region.qualified_name}\"")
         active_vertex = next(
             (vertex for vertex in region.subvertex if vertex in self.active),
             None,
@@ -306,6 +307,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         pass
 
     async def leave_state(self, state: elements.State, event: elements.Event):
+        self.log.debug(f"leaving state \"{state.qualified_name}\"")
         if state.submachine is not None:
             await self.leave_state_machine(state.submachine, event)
         else:
@@ -318,31 +320,33 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def leave_state_machine(
         self, state_machine: "elements.StateMachine", event: elements.Event
     ):
+        self.log.debug("leaving state machine \"{state_machine.qualified_name}\"")
         await asyncio.gather(
             *(self.leave_region(region, event) for region in state_machine.region)
         )
 
-    async def enter_psuedostate(
-        self, psuedostate: elements.Pseudostate, event: elements.Event
+    async def enter_pseudostate(
+        self, pseudostate: elements.Pseudostate, event: elements.Event
     ):
-        if psuedostate.kind == elements.PseudostateKind.initial:
-            return await self.execute_transition(psuedostate.outgoing[0], event)
-        elif psuedostate.kind == elements.PseudostateKind.choice:
-            for transition in psuedostate.outgoing:
+        self.log.debug(f"entering {pseudostate.kind.value} psuedostate {pseudostate.qualified_name}")
+        if pseudostate.kind == elements.PseudostateKind.initial:
+            return await self.execute_transition(pseudostate.outgoing[0], event)
+        elif pseudostate.kind == elements.PseudostateKind.choice:
+            for transition in pseudostate.outgoing:
                 if await self.evaluate_constraint(transition.guard, event):
                     return await self.execute_transition(transition, event)
             raise Exception("no valid transition this should never throw")
-        elif psuedostate.kind == elements.PseudostateKind.join:
+        elif pseudostate.kind == elements.PseudostateKind.join:
             if all(
                 transition.source not in self.active
-                for transition in psuedostate.incoming
+                for transition in pseudostate.incoming
             ):
-                return await self.execute_transition(psuedostate.outgoing[0], event)
-        elif psuedostate.kind == elements.PseudostateKind.fork:
+                return await self.execute_transition(pseudostate.outgoing[0], event)
+        elif pseudostate.kind == elements.PseudostateKind.fork:
             return await asyncio.gather(
                 *(
                     self.execute_transition(transition, event)
-                    for transition in psuedostate.outgoing
+                    for transition in pseudostate.outgoing
                 )
             )
 
