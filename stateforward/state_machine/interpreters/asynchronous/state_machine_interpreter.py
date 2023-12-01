@@ -252,6 +252,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def enter_state(
         self, state: elements.State, event: elements.Event, kind: elements.EntryKind
     ):
+        self.log.debug(f"entering state {state.qualified_name}")
         await self.execute_behavior(state.entry, event)
         self.execute_behavior(state.do_activity, event)
         if state.submachine is not None:
