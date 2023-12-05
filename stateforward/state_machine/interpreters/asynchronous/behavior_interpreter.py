@@ -145,6 +145,7 @@ class AsyncBehaviorInterpreter(model.Interpreter[asyncio.Future], queue=asyncio.
 
     def execute_behavior(self, behavior: elements.Behavior, event: elements.Event):
         if behavior is not None and behavior.activity is not None:
+            self.log.debug(f"Executing {behavior.qualified_name}")
 
             async def execute(_self=self, _behavior=behavior, _event=event):
                 value = _behavior.activity(_event)

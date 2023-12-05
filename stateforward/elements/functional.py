@@ -42,6 +42,7 @@ def transition(
         ]
     ] = None,
     type: type[elements.Transition] = elements.Transition,
+    name: str = None,
 ) -> Union[type[elements.Transition], Sequence[type[elements.Transition]]]:
     if isinstance(source, (list, tuple)):
         return model.collection(
@@ -50,13 +51,16 @@ def transition(
     elif source is not None and target is not None:
         source = model.association(source)
         target = model.association(target)
-        name = f"transition_from_{source.name}_to_{target.name}"
+        if name is None:
+            name = f"transition_from_{source.name}_to_{target.name}"
     elif target:
         target = model.association(target)
-        name = f"transition_to_{target.name}"
+        if name is None:
+            name = f"transition_to_{target.name}"
     elif source:
         source = model.association(source)
-        name = f"transition_from_{source.name}"
+        if name is None:
+            name = f"transition_from_{source.name}"
     else:
         raise ValueError("source and target cannot both be None")
     if event is None:
@@ -190,6 +194,8 @@ def choice(
     *transitions: Sequence[type[elements.Transition]],
     name=None,
 ) -> type["elements.Choice"]:
+    # for enumerate, transition in transitions:
+    #     transiiton.name = f"choice_{enumerate}"
     return model.new_element(
         name or "choice", (elements.Choice,), outgoing=model.collection(*transitions)
     )
