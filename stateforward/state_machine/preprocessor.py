@@ -45,7 +45,7 @@ class StateMachinePreprocessor(model.Preprocessor):
 
     def preprocess_vertex(self, element: type["elements.Vertex"]):
         logger = log.getLogger(f"preprocess_vertex({element.qualified_name})")
-        logger.debug(f"finding container")
+        logger.debug(f"finding container for {element.qualified_name}")
         container = model.find_ancestor(
             element,
             lambda owned_element: model.is_subtype(owned_element, elements.Region),
@@ -74,7 +74,7 @@ class StateMachinePreprocessor(model.Preprocessor):
         if element.submachine is None:
             self.preprocess_composite_state(element)
         else:
-            for region in element.region.elements():
+            for region in element.submachine.region.elements():
                 model.set_attribute(region, "state", element)
                 model.set_attribute(region, "state_machine", None)
 

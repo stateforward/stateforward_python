@@ -18,6 +18,7 @@ from types import new_class
 from dataclasses import MISSING
 from stateforward.model.association import Association, is_association, association
 
+
 if TYPE_CHECKING:
     from stateforward.model import Model
 
@@ -80,6 +81,7 @@ class ElementInterface(Generic[T]):
     """
 
     # class variables
+    addr: ClassVar[int] = None
     name: ClassVar[str] = None
     qualified_name: ClassVar[str] = None
     type: ClassVar[Type["Element"]] = None
@@ -338,8 +340,6 @@ class Element(ElementInterface[T]):
 
     def __init_subclass__(
         cls: type["Element"],
-        name: str = None,
-        redefined_element: "ElementType" = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -364,7 +364,9 @@ class Element(ElementInterface[T]):
         - The method also takes care of handling the owned elements through specialization.
         - Attributes like "owning association" and "model" are set here.
         """
+        cls.addr = id(cls)
         attributes = cls.attributes = (cls.attributes or {}).copy()
+        name = kwargs.pop("name", None)
         for key in kwargs:
             if key not in attributes and getattr(cls, key, ...) is ...:
                 raise TypeError(
@@ -377,7 +379,9 @@ class Element(ElementInterface[T]):
         # cls.type = cls
         cls.model = association(cls)
         cls.associations = {}
-        cls.redefined_element = redefined_element or cls.redefined_element
+        redefined_element = cls.redefined_element = kwargs.pop(
+            "redefined_element", cls.redefined_element
+        )
         if cls.__base__.owned_elements:
             specialize(cls.__base__, cls)
         else:
@@ -612,25 +616,26 @@ def set_attribute(element: type[Element], name: Union[str, int], value: Any):
 
     if is_element(value):
         # check if the element is already a proxy
-        # flags = (is_association(value), value.owner is not None, value == element.model)
-        if is_association(value) or value.owner is not None or value == element.model:
-            # if not flags[0] and flags[1] and not is_collection(element):
-            #     # this element is the namespace of the element, so we need to update the qualified name
-            #     set_qualified_name(value.owner, value, name)
-            add_association(element, value := association(value), name)
+        value_is_association = is_association(value)
+        value_has_owner = value.owner is not None
+        value_is_model = value == element.model
+        if (
+            not value_is_association
+            and not value_is_model
+            and not value_has_owner
+            # and (not value_has_owner or value.owner.addr > element.addr)
+        ):
+            add_owned_element(element, value, name)
+        elif (
+            not value_is_association
+            and value.owner is not None
+            and value.owner.addr > element.addr
+            and not element.redefined_element
+        ):
+            remove_owned_element(value.owner, value)
+            add_owned_element(element, value, name)
         else:
-            add_owned_element(
-                element, value, name if not is_collection(element) else None
-            )
-        # if not is_association(value) and value.owner is None and value != element.model:
-        #     add_owned_element(
-        #         element, value, name if not is_collection(element) else None
-        #     )
-        #
-        #     # attributes are always proxies
-        #     value = association(value)
-        # else:
-        #     add_association(element, value, name)
+            add_association(element, value := association(value), name)
 
     value = element.attributes[name] = value
     setattr(element, str(name), value)
@@ -643,6 +648,7 @@ def is_redefined(element: ElementType) -> bool:
 
 def redefine(
     element: ElementType,
+    bases: tuple[type] = (),
     **attributes,
 ) -> ElementType:
     """
@@ -652,7 +658,7 @@ def redefine(
     :return:
     """
     return new_element(
-        bases=(element,),
+        bases=(element, *bases),
         redefined_element=element,
         **attributes,
     )

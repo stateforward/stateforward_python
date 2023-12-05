@@ -80,7 +80,7 @@ class CompleteSM(sf.AsyncStateMachine):
     s1_r1_s1_transition_to_s1_join = sf.transition(source=s1.r1.s1, target=s1_join)
     s1_r2_s2_transition_to_s1_join = sf.transition(source=s1.r2.s1, target=s1_join)
 
-    s1_transtion_to_s2_s1 = sf.transition(e3, source=s1, target=s2.s2)
+    s1_transtion_to_s2_s1 = sf.transition(e3, source=s1, target=s2.submachine.s2)
 
     fork_transition = sf.transition(e2, source=s0, target=s0_fork)
 
@@ -90,9 +90,9 @@ if __name__ == "__main__":
 
     async def main():
         sf.dump(CompleteSM)
-        sm = CompleteSM()
-
-        await sm.interpreter.start()
-        print(sm.state)
+        # sm = CompleteSM()
+        #
+        # await sm.interpreter.start()
+        # print(sm.state)
 
     asyncio.run(main())

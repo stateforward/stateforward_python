@@ -13,6 +13,9 @@ from examples.microwave import (
     ClockSetEvent,
     ExhaustFanOnEvent,
 )
+from stateforward.state_machine.log import log
+
+log.basicConfig(level=log.ERROR)
 
 
 @pytest_asyncio.fixture

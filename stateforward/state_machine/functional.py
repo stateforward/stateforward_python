@@ -10,10 +10,7 @@ def submachine_state(
     submachine = model.redefine(state_machine, **attributes)
     state = model.new_element(
         name or state_machine.name,
-        (
-            elements.State,
-            submachine,
-        ),
+        (elements.State,),
         submachine=submachine,
     )
     return state

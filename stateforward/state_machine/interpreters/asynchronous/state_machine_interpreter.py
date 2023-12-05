@@ -117,9 +117,13 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     ):
         if constraint is None:
             return True
+        self.log.debug(
+            f"evaluating constraint {constraint.qualified_name} for event {event.qualified_name}"
+        )
         result = constraint.condition(event)
         if asyncio.iscoroutine(result):
             result = await result
+        self.log.debug(f"constraint {constraint.qualified_name} evaluated to {result}")
         return result
 
     async def leave_vertex(self, vertex: elements.Vertex, event: elements.Event):
@@ -135,6 +139,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def execute_transition(
         self, transition: elements.Transition, event: elements.Event = None
     ):
+        self.log.debug(f"executing transition {transition.qualified_name}")
         await asyncio.gather(
             *(self.leave_vertex(vertex, event) for vertex in transition.path.leave)
         )
@@ -292,7 +297,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         return states
 
     async def leave_region(self, region: elements.Region, event: elements.Event):
-        self.log.debug(f"leaving region \"{region.qualified_name}\"")
+        self.log.debug(f'leaving region "{region.qualified_name}"')
         active_vertex = next(
             (vertex for vertex in region.subvertex if vertex in self.active),
             None,
@@ -307,7 +312,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         pass
 
     async def leave_state(self, state: elements.State, event: elements.Event):
-        self.log.debug(f"leaving state \"{state.qualified_name}\"")
+        self.log.debug(f'leaving state "{state.qualified_name}"')
         if state.submachine is not None:
             await self.leave_state_machine(state.submachine, event)
         else:
@@ -320,7 +325,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def leave_state_machine(
         self, state_machine: "elements.StateMachine", event: elements.Event
     ):
-        self.log.debug("leaving state machine \"{state_machine.qualified_name}\"")
+        self.log.debug('leaving state machine "{state_machine.qualified_name}"')
         await asyncio.gather(
             *(self.leave_region(region, event) for region in state_machine.region)
         )
@@ -328,7 +333,9 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def enter_pseudostate(
         self, pseudostate: elements.Pseudostate, event: elements.Event
     ):
-        self.log.debug(f"entering {pseudostate.kind.value} psuedostate {pseudostate.qualified_name}")
+        self.log.debug(
+            f"entering {pseudostate.kind.value} psuedostate {pseudostate.qualified_name}"
+        )
         if pseudostate.kind == elements.PseudostateKind.initial:
             return await self.execute_transition(pseudostate.outgoing[0], event)
         elif pseudostate.kind == elements.PseudostateKind.choice:

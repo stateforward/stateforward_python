@@ -73,7 +73,7 @@ class StateMachineValidator(model.Validator):
             raise ValueError(
                 f"Transition {transition.qualified_name} from outgoing Pseudostate may not have a Event."
             )
-        else:
+        elif transition.source is not None:
             source_container = transition.source.container
             target_container = transition.target.container
             if (
