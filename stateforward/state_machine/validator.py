@@ -73,16 +73,16 @@ class StateMachineValidator(model.Validator):
             raise ValueError(
                 f"Transition {transition.qualified_name} from outgoing Pseudostate may not have a Event."
             )
-        elif transition.source is not None:
-            source_container = transition.source.container
-            target_container = transition.target.container
-            if (
-                source_container != target_container
-                and source_container.state == target_container.state
-            ):
-                raise ValueError(
-                    f"Transition {transition.qualified_name} cannot cross Regions of the same State"
-                )
+        # elif transition.target is not None:
+        #     source_container = transition.source.container
+        #     target_container = transition.target.container
+        #     if (
+        #         source_container != target_container
+        #         and source_container.state == target_container.state
+        #     ):
+        #         raise ValueError(
+        #             f"Transition {transition.qualified_name} cannot cross Regions of the same State"
+        #         )
 
     def validate_pseudostate(self, element: type[elements.Pseudostate]):
         if element.kind == elements.PseudostateKind.choice:
@@ -114,3 +114,10 @@ class StateMachineValidator(model.Validator):
                         f"All {tuple(t.qualified_name for t in element.incoming.elements())} incoming a join elements.Vertex ({element.qualified_name}) must originate in different Regions"
                     )
                 containers.add(transition.source.container.qualified_name)
+
+    def validate_completion_event(self, event: type[elements.CompletionEvent]):
+        log.debug("validating completion event")
+        if not model.is_subtype(event.owner, elements.State):
+            raise ValueError(
+                f"CompletionEvent {event.qualified_name} must be owned by a State"
+            )

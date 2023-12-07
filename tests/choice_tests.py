@@ -53,7 +53,7 @@ class TestSM(sf.AsyncStateMachine, TestSMInterface):
 @pytest.mark.asyncio
 async def test_choice_0():
     sm = mock(TestSM(flag=0))
-    assert sm.choice_1.outgoing[0].target.addr == sm.s2.addr
+    assert sm.choice_1.outgoing[0].target.id == sm.s2.id
 
     await sm.interpreter.start()
     await sf.dispatch(ChoiceEvent(), sm)

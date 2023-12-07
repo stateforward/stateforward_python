@@ -47,6 +47,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
                        guards of its outgoing transitions.
         """
         # could possibly improve this with using state in reverse
+        self.log.debug(f"processing event {event.qualified_name}")
         results = await asyncio.gather(
             *(self.process_region(region, event) for region in self.model.region)
         )
@@ -60,6 +61,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def process_region(
         self, region: elements.elements.Region, event: elements.elements.Event
     ):
+        self.log.debug(f"processing region {region.qualified_name}")
         if not self.is_active(region):
             return model.Processing.incomplete
         active_state = next(
@@ -67,11 +69,16 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         )
         if active_state is None:
             return model.Processing.incomplete
-        return await self.process_state(active_state, event)
+        results = await self.process_state(active_state, event)
+        self.log.debug(
+            f"processed region {region.qualified_name} with results {results}"
+        )
+        return results
 
     async def process_state(
         self, state: elements.elements.State, event: elements.elements.Event
     ):
+        self.log.debug(f"processing state {state.qualified_name}")
         if not self.is_active(state):
             return model.Processing.incomplete
         result = next(
@@ -86,9 +93,10 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
             ),
             model.Processing.incomplete,
         )
-        if result is not model.Processing.incomplete:
-            return result
-        return await self.process_vertex(state, event)
+        if result is model.Processing.incomplete:
+            result = await self.process_vertex(state, event)
+        self.log.debug(f"processed state {state.qualified_name} with result {result}")
+        return result
 
     async def process_vertex(self, vertex: elements.Vertex, event: elements.Event):
         for transition in vertex.outgoing:
@@ -164,17 +172,21 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
     async def enter_vertex(
         self, vertex: elements.Vertex, event: elements.Event, kind: elements.EntryKind
     ):
+        self.log.debug(f"entering vertex {vertex.qualified_name}")
         self.add_active(vertex)
 
         if isinstance(vertex, elements.State):
             await self.enter_state(vertex, event, kind)
-            return await asyncio.gather(
+            results = await asyncio.gather(
                 *(self.enter_transition(transition) for transition in vertex.outgoing)
             )
 
         elif isinstance(vertex, elements.FinalState):
-            return await self.enter_final_state(vertex, event)
-        return await self.enter_pseudostate(vertex, event)
+            results = await self.enter_final_state(vertex, event)
+        else:
+            results = await self.enter_pseudostate(vertex, event)
+        self.log.debug(f"entered vertex {vertex.qualified_name}")
+        return results
 
     async def enter_final_state(self, final_state: elements.FinalState):
         await self.terminate()
@@ -200,6 +212,8 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         return asyncio.create_task(wait(), name=event.qualified_name)
 
     def enter_completion_event(self, event: elements.CompletionEvent):
+        self.log.debug(f"entering completion event {event.qualified_name}")
+
         async def wait(_self=self, _event=event, _source=event.owner):
             await _self.get_active(
                 _source.do_activity
@@ -214,7 +228,9 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
             )
             self.add_active(_event)
 
-        return asyncio.create_task(wait(), name=event.qualified_name)
+        task = asyncio.create_task(wait(), name=event.qualified_name)
+        self.log.debug(f"entered completion event {event.qualified_name}")
+        return task
 
     def enter_call_event(self, event: elements.CallEvent):
         event.results = asyncio.Future()
@@ -226,6 +242,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         return asyncio.create_task(wait(), name=event.qualified_name)
 
     def enter_event(self, event: elements.Event):
+        self.log.debug(f"entering event {event.qualified_name}")
         if isinstance(event, elements.TimeEvent):
             return self.enter_time_event(event)
 
@@ -237,8 +254,10 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
 
         elif isinstance(event, elements.ChangeEvent):
             return self.enter_change_event(event)
+        self.log.debug(f"entered event {event.qualified_name}")
 
     async def enter_transition(self, transition: elements.Transition):
+        self.log.debug(f"entering transition {transition.qualified_name}")
         self.add_active(transition)
         tasks = []
         for event in transition.events:
@@ -253,6 +272,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
                 name=transition.events.qualified_name,
             ),
         )
+        self.log.debug(f"entered transition {transition.qualified_name}")
 
     async def enter_state(
         self, state: elements.State, event: elements.Event, kind: elements.EntryKind
@@ -261,14 +281,16 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
         await self.execute_behavior(state.entry, event)
         self.execute_behavior(state.do_activity, event)
         if state.submachine is not None:
-            await self.enter_state_machine(state.submachine, event, kind)
-        else:
-            await asyncio.gather(
-                *(
-                    self.enter_region(region, event, kind)
-                    for region in state.region or []
-                )
+            self.log.debug(
+                f"entering submachine state machine {state.submachine.qualified_name}"
             )
+            return
+            # await self.enter_state_machine(state.submachine, event, kind)
+        # else:
+        await asyncio.gather(
+            *(self.enter_region(region, event, kind) for region in state.region or [])
+        )
+        self.log.debug(f"entered state {state.qualified_name}")
 
     async def enter_state_machine(
         self,
@@ -294,6 +316,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter):
             self.add_active(region)
             return await self.enter_pseudostate(region.initial, event)
         self.add_active(region)
+        self.log.debug(f"entered region {region.qualified_name}")
         return states
 
     async def leave_region(self, region: elements.Region, event: elements.Event):

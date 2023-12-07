@@ -7,12 +7,13 @@ from stateforward.elements import elements
 def submachine_state(
     state_machine: type[elements.StateMachine], name: str = None, **attributes
 ):
-    submachine = model.redefine(state_machine, **attributes)
-    state = model.new_element(
-        name or state_machine.name,
-        (elements.State,),
-        submachine=submachine,
-    )
+    state = model.redefine(state_machine, bases=(elements.State,), **attributes)
+    model.set_attribute(state, "submachine", state)
+    # state = model.new_element(
+    #     name or state_machine.name,
+    #     (elements.State,),
+    #     submachine=submachine,
+    # )
     return state
 
 

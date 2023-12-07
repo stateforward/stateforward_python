@@ -81,7 +81,7 @@ class ElementInterface(Generic[T]):
     """
 
     # class variables
-    addr: ClassVar[int] = None
+    id: ClassVar[int] = 0
     name: ClassVar[str] = None
     qualified_name: ClassVar[str] = None
     type: ClassVar[Type["Element"]] = None
@@ -93,6 +93,9 @@ class ElementInterface(Generic[T]):
     owner: Optional[Association["ElementType"]] = None
     model: Association["Model"] = None
     attributes: dict[Any, Any] = None
+
+    def __reduce__(self):
+        return self.__class__, (self.__class__,)
 
 
 def is_subtype(
@@ -364,7 +367,7 @@ class Element(ElementInterface[T]):
         - The method also takes care of handling the owned elements through specialization.
         - Attributes like "owning association" and "model" are set here.
         """
-        cls.addr = id(cls)
+        cls.id = Element.id = Element.id + 1
         attributes = cls.attributes = (cls.attributes or {}).copy()
         name = kwargs.pop("name", None)
         for key in kwargs:
@@ -629,7 +632,7 @@ def set_attribute(element: type[Element], name: Union[str, int], value: Any):
         elif (
             not value_is_association
             and value.owner is not None
-            and value.owner.addr > element.addr
+            and value.owner.id > element.id
             and not element.redefined_element
         ):
             remove_owned_element(value.owner, value)

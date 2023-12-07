@@ -10,9 +10,5 @@ class AsyncStateMachine(
     preprocessor=StateMachinePreprocessor,
     validator=StateMachineValidator,
     interpreter=AsyncStateMachineInterpreter,
-
-
-): # testing # for this
-    # bang
-
+):
     pass

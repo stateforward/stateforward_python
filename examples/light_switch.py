@@ -178,17 +178,20 @@ class LightSwitch(sf.AsyncStateMachine):
 if __name__ == "__main__":
 
     async def light_switch_main():
+        import pickle
+
         light_switch = LightSwitch()
+        pickle.dumps(light_switch)
         #
-        await light_switch.interpreter.start()  # awaiting the event ensures the state machine is idle before we send an event
-        print(light_switch.state)
-        await sf.dispatch(OnEvent(), light_switch)
-        print(light_switch.state)
-        await sf.dispatch(OffEvent(), light_switch)
-        print(light_switch.state)
-        light_switch.flashing = True
-        await asyncio.sleep(2)
-        print(light_switch.state)
-        print(light_switch, light_switch.flashing)
+        # await light_switch.interpreter.start()  # awaiting the event ensures the state machine is idle before we send an event
+        # print(light_switch.state)
+        # await sf.dispatch(OnEvent(), light_switch)
+        # print(light_switch.state)
+        # await sf.dispatch(OffEvent(), light_switch)
+        # print(light_switch.state)
+        # light_switch.flashing = True
+        # await asyncio.sleep(2)
+        # print(light_switch.state)
+        # print(light_switch, light_switch.flashing)
 
     asyncio.run(light_switch_main())

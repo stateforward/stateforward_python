@@ -110,7 +110,7 @@ def dump(element, level=0, associated_name=None, max_level=None):
     print(
         f"{level * ' '}{level} -> {associated_name if associated_name is not None else element.qualified_name} {type_name} @ {address}"
     )
-    if not associated_name:
+    if associated_name is None:
         for owned_element in element.owned_elements:
             dump(owned_element, level + 1, max_level=max_level)
         for name, associated in element.associations.items():
