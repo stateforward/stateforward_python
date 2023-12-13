@@ -7,6 +7,7 @@ This was hacked together to provide a simple mocking interface for testing state
 from unittest.mock import AsyncMock as _AsyncMock, Mock
 import stateforward as sf
 from typing import Callable, Union, Generic, TypeVar, Sequence, Type
+import asyncio
 
 T = TypeVar("T")
 
@@ -16,29 +17,29 @@ class MockedElement(sf.Element):
 
 
 def mocked_behavior(name: str):
-    return sf.new_element(name, bases=(sf.Behavior,), activity=Mock(name=name))
+    return sf.new(name, bases=(sf.Behavior,), activity=Mock(name=name))
 
 
 def mocked_constraint(name: str):
-    return sf.new_element(name, bases=(sf.Constraint,), condition=Mock(name=name))
+    return sf.new(name, bases=(sf.Constraint,), condition=Mock(name=name))
 
 
 def mock(model: sf.Model):
     mocked_model = MockedModel(model)
-    for element in sf.all_owned_elements(model):
+    for element in sf.descendants_of(model):
         if isinstance(element, sf.CallEvent):
             element.operation = Mock(
-                side_effect=element.operation, name=element.qualified_name
+                side_effect=element.operation, name=sf.qualified_name_of(element)
             )
             mocked_model.__mocked__.add(element.operation)
         elif isinstance(element, sf.Behavior):
             element.activity = _AsyncMock(
-                side_effect=element.activity, name=element.qualified_name
+                side_effect=element.activity, name=sf.qualified_name_of(element)
             )
             mocked_model.__mocked__.add(element.activity)
         elif isinstance(element, sf.Constraint):
             element.condition = _AsyncMock(
-                side_effect=element.condition, name=element.qualified_name
+                side_effect=element.condition, name=sf.qualified_name_of(element)
             )
             mocked_model.__mocked__.add(element.condition)
         elif isinstance(element, sf.Transition):
@@ -61,7 +62,11 @@ class Mocked(Generic[T]):
         self.__mocked__ = set(all_mocked_elements)
 
     def future(self):
-        return self.__element__.model.interpreter.get_active(self.__element__)
+        future = self.__element__.model.interpreter.stack.get(self.__element__)
+        if future is None:
+            future = asyncio.Future()
+            future.set_result(None)
+        return future
 
     def is_active(self, *elements) -> bool:
         return self.__element__.model.interpreter.is_active(self.__element__)
@@ -96,7 +101,7 @@ class MockedCallEvent(Mocked[sf.CallEvent], element=sf.CallEvent):
 class MockedModel(Mocked[sf.Model], element=sf.Model):
     async def dispatch(self, event: sf.Event):
         self.reset_mocked()
-        await sf.dispatch(event, self.__element__)
+        await sf.send(event, self.__element__)
 
 
 class MockedBehavior(Mocked, element=sf.Behavior):
@@ -192,14 +197,15 @@ class Expect:
 
     def __getattr__(self, item):
         def apply(_self=self, _item=item):
+            # includes = [getattr(element, _item)() for element in _self.include]
             for element in _self.include:
                 assert getattr(
                     element, _item
-                )(), f"{element.__element__.qualified_name}.{_item}() assertion failed"
+                )(), f"{sf.qualified_name_of(element.__element__)}.{_item}() assertion failed"
             for element in _self.exclude:
                 assert not getattr(
                     element, _item
-                )(), f"not {element.__element__.qualified_name}.{_item}() assertion failed"
+                )(), f"not {sf.qualified_name_of(element.__element__)}.{_item}() assertion failed"
 
         return Expect(self.include, self.exclude, apply=apply)
 
@@ -216,8 +222,8 @@ class Expect:
             include=(element, *elements),
             exclude=tuple(
                 mocked(_element)
-                for _element in sf.all_owned_elements(element.__element__.model)
-                if sf.is_subtype(_element, element.__element_type__)
+                for _element in sf.descendants_of(element.__element__.model)
+                if sf.element.is_subtype(_element, element.__element_type__)
                 and _element not in include
             ),
         )

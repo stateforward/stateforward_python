@@ -92,9 +92,9 @@ if __name__ == "__main__":
         # sf.dump(CompleteSM)
         sm = CompleteSM()
         # #
-        await sm.interpreter.start()
+        await sm.__interpreter__.start()
         # print(sm.state)
-        await sf.dispatch(e3(), sm)
+        await sf.send(e3(), sm)
         print(sm.state)
 
     asyncio.run(main())

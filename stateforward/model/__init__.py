@@ -547,35 +547,79 @@ The `Preprocessor` is a powerful tool within the `stateforward` library that aid
 The `Interpreter` is an abstract class responsible for executing a `Model`.
 
 """
+from . import element
 from .element import (
     Element,
-    is_redefined,
     redefine,
-    find_owned_elements,
-    find_descendants,
-    remove_owned_elements,
-    remove_owned_element,
-    add_owned_element,
-    ancestors,
-    is_type,
-    is_element,
-    all_owned_elements,
-    is_subtype,
-    find_ancestor,
-    find_owned_element,
-    is_subtype,
-    set_attribute,
-    find_owned_element,
-    new_element,
-    has_descendant,
-    bind,
-    traverse_pre_order,
+    find_owned_elements_of,
+    find_descendants_of,
+    owned_elements_of,
+    remove_owned_elements_from,
+    remove_owned_element_from,
+    attributes_of,
+    associations_of,
+    add_owned_element_to,
+    descendants_of,
+    ancestors_of,
+    find_ancestor_of,
+    find_owned_element_of,
+    name_of,
+    id_of,
+    owner_of,
+    qualified_name_of,
+    type_of,
+    find_owned_element_of,
+    is_descendant_of,
     ElementType,
+    set_attribute,
+    new,
 )
 from .collection import Collection, collection, sort_collection, extend_collection
-from .model import Model, dump
+from .model import Model, dump, of
 from .preprocessor import Preprocessor
-from .interpreter import Interpreter, Processing
+from .interpreter import Interpreter, InterpreterStep
 from .validator import Validator
 from .association import is_association, Association, association
 from .visitor import Visitor
+
+
+__all__ = (
+    "Element",
+    "redefine",
+    "find_owned_elements_of",
+    "owned_elements_of",
+    "find_descendants_of",
+    "remove_owned_elements_from",
+    "remove_owned_element_from",
+    "add_owned_element_to",
+    "ancestors_of",
+    "find_ancestor_of",
+    "find_owned_element_of",
+    "set_attribute",
+    "name_of",
+    "id_of",
+    "owner_of",
+    "descendants_of",
+    "qualified_name_of",
+    "type_of",
+    "find_owned_element_of",
+    "associations_of",
+    "is_descendant_of",
+    "ElementType",
+    "Collection",
+    "collection",
+    "sort_collection",
+    "extend_collection",
+    "Model",
+    "dump",
+    "of",
+    "Preprocessor",
+    "Interpreter",
+    "InterpreterStep",
+    "Validator",
+    "is_association",
+    "Association",
+    "association",
+    "Visitor",
+    "element",
+)

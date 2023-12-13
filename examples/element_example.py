@@ -18,6 +18,7 @@ class Person(FamilyTreeElement):
     kids: Union[FamilyTreeElement, sf.Collection[FamilyTreeElement]] = None
     spouse: FamilyTreeElement = None
 
+
 class FamilyTree(FamilyTreeElement):
     pass
 
@@ -48,17 +49,23 @@ class Family(FamilyTree):
 
     non_blood_related: FamilyTree = Mom.SonInLaw
 
+
 class Cousin(Person, first_name="Joe", age=20):
     adopted_family: FamilyTree = None
+
 
 def element_example_main():
     redefined_family = sf.redefine(Family)
     sf.dump(redefined_family)
     print(redefined_family.attributes)
-    new_family = sf.new_element(
-        "NewFamily", (Cousin,), adopted_family=redefined_family, attributes=redefined_family.attributes
+    new_family = sf.element.new(
+        "NewFamily",
+        (Cousin,),
+        adopted_family=redefined_family,
+        attributes=redefined_family.attributes,
     )
     print(new_family.Dad)
 
 
-element_example_main()
+if __name__ == "__main__":
+    element_example_main()

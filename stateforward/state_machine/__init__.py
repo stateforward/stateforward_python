@@ -56,3 +56,4 @@ from .elements import AsyncStateMachine
 from .preprocessor import StateMachinePreprocessor
 from .interpreters import AsyncStateMachineInterpreter
 from .validator import StateMachineValidator
+from .functional import *

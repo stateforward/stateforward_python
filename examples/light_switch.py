@@ -147,9 +147,7 @@ class OffEvent(sf.Event):
 
 class PrintBehavior(sf.Behavior):
     def activity(self, event: sf.Event = None):
-        print(
-            f"{self.qualified_name}<{id(self)}> -> {event.qualified_name if event is not None else None}"
-        )
+        pass
 
 
 class LightSwitch(sf.AsyncStateMachine):
@@ -157,12 +155,12 @@ class LightSwitch(sf.AsyncStateMachine):
     FlashEvent = sf.when(lambda self, event=None: self.model.flashing)
 
     class On(sf.State):
-        entry = sf.bind(PrintBehavior)
-        exit = sf.bind(PrintBehavior)
+        entry = sf.redefine(PrintBehavior)
+        exit = sf.redefine(PrintBehavior)
 
     class Off(sf.State):
-        entry = sf.bind(PrintBehavior)
-        exit = sf.bind(PrintBehavior)
+        entry = sf.redefine(PrintBehavior)
+        exit = sf.redefine(PrintBehavior)
 
     class Flashing(sf.State):
         pass
@@ -181,11 +179,14 @@ if __name__ == "__main__":
         import pickle
 
         light_switch = LightSwitch()
-        pickle.dumps(light_switch)
+        print(light_switch.regions)
+        light_switch.interpreter.start()
+        await asyncio.sleep(1)
         #
+        # await light_switch.interpreter.terminate()
         # await light_switch.interpreter.start()  # awaiting the event ensures the state machine is idle before we send an event
         # print(light_switch.state)
-        # await sf.dispatch(OnEvent(), light_switch)
+        await sf.send(OnEvent(), light_switch)
         # print(light_switch.state)
         # await sf.dispatch(OffEvent(), light_switch)
         # print(light_switch.state)

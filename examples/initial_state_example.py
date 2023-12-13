@@ -29,7 +29,7 @@ class SM(sf.AsyncStateMachine):
 async def main():
     sf.dump(SM)
     sm = SM()
-    await sm.interpreter.start()
+    await sm.__interpreter__.start()
     assert sm.state == (sm.R1.S1, sm.R2.S2, sm.R3.S3)
 
 
