@@ -1,14 +1,22 @@
-from typing import ClassVar, TYPE_CHECKING, Type, Optional
-from stateforward.model.element import Element, set_attribute
-from inspect import isclass
+import typing
+from stateforward.model.element import (
+    Element,
+    ElementType,
+    id_of,
+    type_of,
+    qualified_name_of,
+    owned_elements_of,
+    associations_of,
+)
 
-if TYPE_CHECKING:
+if typing.TYPE_CHECKING:
     from stateforward.model.preprocessor import Preprocessor
     from stateforward.model.interpreter import Interpreter
     from stateforward.model.validator import Validator
 
 __all__ = (
     "Model",
+    "of",
     "dump",
 )
 
@@ -21,13 +29,13 @@ class Model(Element):
     specific processing behavior.
 
     Attributes:
-        preprocessor (ClassVar[Preprocessor], optional): A class-level attribute
+        __preprocessor__ (ClassVar[Preprocessor], optional): A class-level attribute
             that holds a `Preprocessor` instance or None by default. The `Preprocessor`
             instance is responsible for preparing input data for the model.
-        validator (ClassVar[Validator], optional): A class-level attribute that
+        __validator__ (ClassVar[Validator], optional): A class-level attribute that
             holds a `Validator` instance or None by default. The `Validator` instance is
             responsible for ensuring that the model's input data is valid.
-        interpreter (ClassVar[type[Interpreter]], optional): A class-level attribute
+        __interpreter__ (ClassVar[type[Interpreter]], optional): A class-level attribute
             that holds a 'Interpreter' class or None by default. The 'Interpreter'
             class is responsible for interpreting the model's output.
 
@@ -49,15 +57,12 @@ class Model(Element):
           existing one's `validate` method will be called before it is replaced.
     """
 
-    preprocessor: ClassVar[Type["Preprocessor"]] = None
-    validator: ClassVar[Type["Validator"]] = None
-    interpreter: ClassVar[Type["Interpreter"]] = None
+    preprocessor: typing.ClassVar[type["Preprocessor"]] = None
+    validator: typing.ClassVar[type["Validator"]] = None
+    interpreter: "Interpreter" = None
 
     def __init_subclass__(
         cls: type["Model"],
-        # preprocessor: Optional[type["Preprocessor"]] = None,
-        # validator: Optional[type["Validator"]] = None,
-        # processor: Optional[type["Interpreter"]] = None,
         **kwargs,
     ):
         """Initializes the subclass with the provided processors.
@@ -76,47 +81,53 @@ class Model(Element):
             **kwargs: Arbitrary keyword arguments that are passed to the base
                 class's `__init_subclass__` method.
         """
-        preprocessor = kwargs.pop("preprocessor", None)
-        validator = kwargs.pop("validator", None)
-        interpreter = kwargs.pop("interpreter", None)
+        preprocessor = cls.preprocessor
+        validator = cls.validator
         super().__init_subclass__(**kwargs)
-        if cls.preprocessor is not None:
-            cls.preprocessor().preprocess(cls)
-        set_attribute(cls, "preprocessor", preprocessor or cls.preprocessor)
-        if cls.validator is not None:
-            cls.validator().validate(cls)
-        set_attribute(cls, "validator", validator or cls.validator)
-        set_attribute(cls, "interpreter", interpreter or cls.interpreter)
+        if preprocessor is not None:
+            preprocessor().preprocess(cls)
+        if validator is not None:
+            validator().validate(cls)
 
 
-def dump(element, level=0, associated_name=None, max_level=None):
-    if max_level is not None and level > max_level:
-        return
-    type_or_object = "type" if isclass(element) else "object"
+def of(element: ElementType) -> typing.Optional[typing.Union[type[Model], Model]]:
+    """Returns the model associated with the provided element.
+
+    Args:
+        element: The element whose model is to be returned.
+
+    Returns:
+        Optional[Type[Model]]: The model associated with the provided element.
+    """
+    return element.__all_elements__.get(element.__model__, None)
+
+
+def dump(
+    element,
+    level=0,
+    associated_name=None,
+):
+    type_or_object = "type" if isinstance(element, type) else "object"
     if associated_name is None:
         base = (
             element.__base__.__name__
-            if isclass(element)
+            if type_or_object == "type"
             else element.__class__.__base__.__name__
         )
         type_name = f"{type_or_object}[{base}]"
     else:
-        type_name = f"{type_or_object}[Association<{element.type.qualified_name}>]"
-    address = hex(
-        id(element if associated_name is None else element.type)
-        if isclass(element)
-        else element.__hash__()
-    )
+        type_name = f"{type_or_object}[Association<{qualified_name_of(type_of(element))} @ {id_of(type_of(element))}>]"
+    address = id_of(element)
     print(
-        f"{level * ' '}{level} -> {associated_name if associated_name is not None else element.qualified_name} {type_name} @ {address}"
+        f"{level * ' '}{level} -> {associated_name if associated_name is not None else qualified_name_of(element)} {type_name} @ {address}"
     )
     if associated_name is None:
-        for owned_element in element.owned_elements:
-            dump(owned_element, level + 1, max_level=max_level)
-        for name, associated in element.associations.items():
-            dump(
-                getattr(element, str(name), associated),
-                level + 1,
-                f"{element.qualified_name}.{name}",
-                max_level=max_level,
-            )
+        for owned_element in owned_elements_of(element):
+            dump(owned_element, level + 1)
+        for name, associated in associations_of(element).items():
+            if id_of(associated) not in element.__owned_elements__:
+                dump(
+                    associated,
+                    level + 1,
+                    f"{qualified_name_of(element)}.{name}",
+                )

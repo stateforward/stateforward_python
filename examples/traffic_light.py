@@ -142,7 +142,7 @@ class Signal(sf.AsyncStateMachine):
 
 
 def walk_guard(self, event):
-    return self.model.On.red in self.model.interpreter.active
+    return self.model.On.red in self.model.__interpreter__.stack
 
 
 class TrafficLight(sf.AsyncStateMachine):
@@ -191,17 +191,17 @@ WALK = "🚶"
 
 def display(tl: "TrafficLight"):
     print(tl.state)
-    if tl.interpreter.is_active(tl.On.red.submachine.On):
+    if tl.__interpreter__.is_active(tl.On.red.submachine.On):
         color = "🔴"
-    elif tl.interpreter.is_active(tl.On.yellow.submachine.On):
+    elif tl.__interpreter__.is_active(tl.On.yellow.submachine.On):
         color = "🟡"
-    elif tl.interpreter.is_active(tl.On.green.submachine.On):
+    elif tl.__interpreter__.is_active(tl.On.green.submachine.On):
         color = "🟢"
     else:
         color = "⚫️"
-    if tl.interpreter.is_active(tl.On.Pedestrian.Walk):
+    if tl.__interpreter__.is_active(tl.On.Pedestrian.Walk):
         pedestrian = WALK
-    elif tl.interpreter.is_active(tl.On.Pedestrian.DontWalk):
+    elif tl.__interpreter__.is_active(tl.On.Pedestrian.DontWalk):
         pedestrian = DONT_WALK
     else:
         pedestrian = None
@@ -233,8 +233,8 @@ async def display_signal(tl):
 async def traffic_light_main():
     tl = TrafficLight("north")
     asyncio.create_task(display_signal(tl))
-    tl.interpreter.start()
-    await sf.dispatch(PedestrianWalkButton(), tl)
+    await tl.interpreter.start()
+    await sf.send(PedestrianWalkButton(), tl)
     await asyncio.Future()
 
 

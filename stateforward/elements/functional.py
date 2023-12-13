@@ -15,13 +15,15 @@ def initial(
         ]
     ] = None,
 ) -> type[elements.Initial]:
-    element = model.new_element(f"initial", (elements.Initial,))
-    if not model.is_subtype(effect, elements.Behavior):
-        effect = model.new_element(
+    element = model.element.new(f"initial", (elements.Initial,))
+    if not model.element.is_subtype(effect, elements.Behavior):
+        effect = model.element.new(
             f"effect", bases=(elements.Behavior,), activity=effect
         )
     model.set_attribute(
-        element, "transition", transition(target=target, source=element, effect=effect)
+        element,
+        "transition",
+        transition(target=target, effect=effect),
     )
     return element
 
@@ -49,18 +51,18 @@ def transition(
             *(transition(event, target, _source, guard, effect) for _source in source)
         )
     elif source is not None and target is not None:
-        source = model.association(source)
-        target = model.association(target)
+        # source = model.association(source)
+        # target = model.association(target)
         if name is None:
-            name = f"transition_from_{source.name}_to_{target.name}"
+            name = f"transition_from_{model.name_of(source)}_to_{model.name_of(target)}"
     elif target:
-        target = model.association(target)
+        # target = model.association(target)
         if name is None:
-            name = f"transition_to_{target.name}"
+            name = f"transition_to_{model.name_of(target)}"
     elif source:
-        source = model.association(source)
+        # source = model.association(source)
         if name is None:
-            name = f"transition_from_{source.name}"
+            name = f"transition_from_{model.name_of(source)}"
     else:
         raise ValueError("source and target cannot both be None")
     if event is None:
@@ -71,11 +73,11 @@ def transition(
             if isinstance(event, (list, tuple))
             else model.collection(event)
         )
-    if guard is not None and not model.is_subtype(guard, elements.Constraint):
+    if guard is not None and not model.element.is_subtype(guard, elements.Constraint):
         guard = constraint(guard)
-    if effect is not None and not model.is_subtype(effect, elements.Behavior):
+    if effect is not None and not model.element.is_subtype(effect, elements.Behavior):
         effect = behavior(effect)
-    return model.new_element(
+    new_transition = model.element.new(
         name,
         (type,),
         events=events,
@@ -84,13 +86,14 @@ def transition(
         guard=guard,
         effect=effect,
     )
+    return new_transition
 
 
 def constraint(
     decorated: Callable[[elements.Constraint, elements.Event], bool],
     type: type[elements.Constraint] = elements.Constraint,
 ) -> type[elements.Constraint]:
-    return model.new_element(
+    return model.element.new(
         f"constraint_{getattr(decorated, '__name__', repr(decorated))}",
         (type,),
         condition=decorated,
@@ -102,7 +105,7 @@ def behavior(
     name: Optional[str] = None,
     type: type[elements.Behavior] = elements.Behavior,
 ) -> type[elements.Constraint]:
-    return model.new_element(
+    return model.element.new(
         name or f"behavior_{getattr(decorated, '__name__', repr(decorated))}",
         (type,),
         activity=decorated,
@@ -130,7 +133,7 @@ def after(
         name = f"after<{when}>"
     else:
         name = f"after<{getattr(when, '__name__', repr(when))}>"
-    return model.new_element(
+    return model.element.new(
         name,
         (elements.TimeEvent,),
         when=when,
@@ -138,7 +141,7 @@ def after(
 
 
 def event(name: str) -> type[elements.Event]:
-    return model.new_element(name, (elements.Event,))
+    return model.element.new(name, (elements.Event,))
 
 
 def at(
@@ -159,14 +162,12 @@ def at(
             when = datetime(
                 iso_or_year, month, day, hour, minute, second, microsecond, tzinfo
             )
-    return model.new_element("at", (elements.TimeEvent,), when=when)
+    return model.element.new("at", (elements.TimeEvent,), when=when)
 
 
-def when(
-    expr: Callable[[model.element.Element], bool], docs: str = None
-) -> type[elements.ChangeEvent]:
+def when(expr: Callable[[model.element.Element], bool]) -> type[elements.ChangeEvent]:
     name = f"when<{getattr(expr, '__name__', repr(expr))}>"
-    return model.new_element(name, (elements.ChangeEvent,), expr=expr, __doc__=docs)
+    return model.element.new(name, (elements.ChangeEvent,), expr=expr)
 
 
 def join(
@@ -174,8 +175,8 @@ def join(
     effect=None,
     guard=None,
 ) -> Type[elements.Join]:
-    join_element = model.new_element("join", (elements.Join,))
-    model.add_owned_element(
+    join_element = model.element.new("join", (elements.Join,))
+    model.add_owned_element_to(
         join_element,
         transition(target=target, source=join_element, effect=effect, guard=guard),
     )
@@ -185,7 +186,7 @@ def join(
 def fork(
     *outgoing: Sequence[type[elements.Transition]], name: str = None
 ) -> Type[elements.Fork]:
-    return model.new_element(
+    return model.element.new(
         name or "fork", (elements.Fork,), outgoing=model.collection(*outgoing)
     )
 
@@ -196,7 +197,7 @@ def choice(
 ) -> type["elements.Choice"]:
     # for enumerate, transition in transitions:
     #     transiiton.name = f"choice_{enumerate}"
-    return model.new_element(
+    return model.element.new(
         name or "choice", (elements.Choice,), outgoing=model.collection(*transitions)
     )
 
@@ -213,13 +214,13 @@ def simple_state(
         type[elements.Behavior], Callable[[elements.Behavior, elements.Event], None]
     ] = None,
 ):
-    if not model.is_subtype(entry, elements.Behavior):
+    if not model.element.is_subtype(entry, elements.Behavior):
         entry = behavior(entry)
-    if not model.is_subtype(exit, elements.Behavior):
+    if not model.element.is_subtype(exit, elements.Behavior):
         exit = behavior(exit)
-    if not model.is_subtype(do_activity, elements.Behavior):
+    if not model.element.is_subtype(do_activity, elements.Behavior):
         do_activity = behavior(do_activity)
-    return model.new_element(
+    return model.element.new(
         name,
         (elements.State,),
         entry=entry,
@@ -232,7 +233,7 @@ def entry_point(
     *transitions: Sequence[type[elements.Transition]],
     name: str = None,
 ) -> type[elements.State]:
-    return model.new_element(
+    return model.element.new(
         name or "entry_point",
         (elements.EntryPoint,),
         outgoing=model.collection(*transitions),
@@ -242,7 +243,7 @@ def entry_point(
 def exit_point(
     name: str = None,
 ) -> type[elements.State]:
-    return model.new_element(
+    return model.element.new(
         name or "exit_point",
         (elements.ExitPoint,),
     )

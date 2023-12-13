@@ -130,6 +130,7 @@ To get a local copy up and running follow these simple example steps.
 
 <!-- USAGE EXAMPLES -->
 ## Usage
+
 ```python
 import stateforward as sf
 import asyncio
@@ -173,15 +174,15 @@ async def main():
     # instantiate a light switch
     light_switch = LightSwitch()
     # start the interpreter and wait for it to be settled
-    await light_switch.interpreter.start()
+    await light_switch.__interpreter__.start()
     # output the current states of the state machine
     print(light_switch.state)
     # dispatch a OnEvent to the state machine
-    await sf.dispatch(OnEvent(), light_switch)
+    await sf.send(OnEvent(), light_switch)
     # output the current states of the state machine
     print(light_switch.state)
     # dispatch a OffEvent to the state machine
-    await sf.dispatch(OffEvent(), light_switch)
+    await sf.send(OffEvent(), light_switch)
     print(light_switch.state)
 
 

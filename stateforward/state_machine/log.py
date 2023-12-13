@@ -1,12 +1,10 @@
-try:
-    import picologging as log
-except ImportError:
-    import logging as log
+import logging
 import typing
+from logging import Logger
 
 
-class ColorLevelFormatter(log.Formatter):
-    formatters: typing.ClassVar[dict[int, log.Formatter]] = {}
+class ColorLevelFormatter(logging.Formatter):
+    formatters: typing.ClassVar[dict[int, logging.Formatter]] = {}
 
     def __init__(
         self,
@@ -17,20 +15,23 @@ class ColorLevelFormatter(log.Formatter):
             datefmt="%Y-%m-%d %H:%M:%S",
         )
 
-    def format(self, record, formatter=log.Formatter):
+    def format(self, record, formatter=logging.Formatter):
         return formatter.format(
             ColorLevelFormatter.formatters.get(record.levelno, self), record
         )
 
 
 ColorLevelFormatter.formatters = {
-    log.WARNING: ColorLevelFormatter(33),
-    log.ERROR: ColorLevelFormatter(31),
-    log.CRITICAL: ColorLevelFormatter(91),
+    logging.WARNING: ColorLevelFormatter(33),
+    logging.ERROR: ColorLevelFormatter(31),
+    logging.CRITICAL: ColorLevelFormatter(91),
 }
 
-stream_handler = log.StreamHandler()
-stream_handler.setFormatter(ColorLevelFormatter())
 
-
-log.basicConfig(level=log.DEBUG, handlers=(stream_handler,))
+def create_logger(name: str):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(ColorLevelFormatter())
+    logger.addHandler(stream_handler)
+    return logger

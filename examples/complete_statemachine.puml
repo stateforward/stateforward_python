@@ -13,6 +13,81 @@ skinparam State {
     FontColor white
     borderColor white
 }
- state "AsyncStateMachine" as AsyncStateMachine {
-    }
- note top of AsyncStateMachine: "Asynchronous state machine implementation that handles behaviors and state transitions.\n\n    This class extends the generic Behavior and CompositeState classes to facilitate\n    concurrent operations within the state machine. The AsyncStateMachine allows for the\n    definition of states and transitions and manages the asynchronous execution of behavior\n    activities triggered by events.\n\n    Attributes:\n        submachine_state (State): The reference to the submachine state if this state machine\n                                  is used as a submachine within another state machine.\n\n    Properties:\n        state (tuple[State]): A tuple containing references to all the currently active states\n                              within the state machine.\n    " @enduml
+ state "AudioProcessor" as AudioProcessor {
+   [*] --> AudioProcessor_region_0
+   state "0" as AudioProcessor_region_0 {
+       state "create_db_entry" as AudioProcessor_region_0_create_db_entry {
+              }
+       state "extracting_video_id" as AudioProcessor_region_0_extracting_video_id {
+              }
+       state "update_db_entry_video_id" as AudioProcessor_region_0_update_db_entry_video_id {
+              }
+       state "downloading" as AudioProcessor_region_0_downloading {
+             [*] --> AudioProcessor_region_0_downloading_audio
+             state "audio" as AudioProcessor_region_0_downloading_audio {
+                     state "downloading" as AudioProcessor_region_0_downloading_audio_downloading {
+                                }
+                     [*] --> AudioProcessor_region_0_downloading_audio_downloading
+                     }
+             [*] --> AudioProcessor_region_0_downloading_captions
+             state "captions" as AudioProcessor_region_0_downloading_captions {
+                     state "downloading" as AudioProcessor_region_0_downloading_captions_downloading {
+                                }
+                     [*] --> AudioProcessor_region_0_downloading_captions_downloading
+                     }
+             }
+       state "update_db_entry_captions" as AudioProcessor_region_0_update_db_entry_captions {
+              }
+       state "processing" as AudioProcessor_region_0_processing {
+             [*] --> AudioProcessor_region_0_processing_region_0
+             state "0" as AudioProcessor_region_0_processing_region_0 {
+                     state "convert_mp3_to_wav" as AudioProcessor_region_0_processing_region_0_convert_mp3_to_wav {
+                                }
+                     state "remove_background_audio" as AudioProcessor_region_0_processing_region_0_remove_background_audio {
+                                }
+                     state "convert_wav_to_mp3" as AudioProcessor_region_0_processing_region_0_convert_wav_to_mp3 {
+                                }
+                     state "enhance_audio" as AudioProcessor_region_0_processing_region_0_enhance_audio {
+                               [*] --> AudioProcessor_region_0_processing_region_0_enhance_audio_region_0
+                               state "0" as AudioProcessor_region_0_processing_region_0_enhance_audio_region_0 {
+                                           state "split_audio_into_segments" as AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_split_audio_into_segments {
+                                                          }
+                                           state "reduce_noise" as AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_reduce_noise {
+                                                          }
+                                           state "enhance_audio_segments" as AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_enhance_audio_segments {
+                                                          }
+                                           state "export_audio_segments" as AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_export_audio_segments {
+                                                          }
+                                           [*] --> AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_split_audio_into_segments
+                                           }
+                               }
+                     [*] --> AudioProcessor_region_0_processing_region_0_convert_mp3_to_wav
+                     }
+             }
+       state "uploading_audio_to_r2" as AudioProcessor_region_0_uploading_audio_to_r2 {
+              }
+       state "update_db_entry_audio_url" as AudioProcessor_region_0_update_db_entry_audio_url {
+              }
+       state "analyzing_vocal_expressions" as AudioProcessor_region_0_analyzing_vocal_expressions {
+              }
+       state "update_db_entry_predictions" as AudioProcessor_region_0_update_db_entry_predictions {
+              }
+       [*] --> AudioProcessor_region_0_create_db_entry
+       }
+   }
+ AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_split_audio_into_segments --> AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_reduce_noise: completion
+ AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_reduce_noise --> AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_enhance_audio_segments: completion
+ AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_enhance_audio_segments --> AudioProcessor_region_0_processing_region_0_enhance_audio_region_0_export_audio_segments: completion
+ AudioProcessor_region_0_processing_region_0_convert_mp3_to_wav --> AudioProcessor_region_0_processing_region_0_remove_background_audio: completion
+ AudioProcessor_region_0_processing_region_0_remove_background_audio --> AudioProcessor_region_0_processing_region_0_convert_wav_to_mp3: completion
+ AudioProcessor_region_0_processing_region_0_convert_wav_to_mp3 --> AudioProcessor_region_0_processing_region_0_enhance_audio: completion
+ AudioProcessor_region_0_create_db_entry --> AudioProcessor_region_0_extracting_video_id: completion
+ AudioProcessor_region_0_extracting_video_id --> AudioProcessor_region_0_update_db_entry_video_id: completion
+ AudioProcessor_region_0_update_db_entry_video_id --> AudioProcessor_region_0_downloading: completion
+ AudioProcessor_region_0_downloading --> AudioProcessor_region_0_update_db_entry_captions: completion
+ AudioProcessor_region_0_update_db_entry_captions --> AudioProcessor_region_0_processing: completion
+ AudioProcessor_region_0_processing --> AudioProcessor_region_0_uploading_audio_to_r2: completion
+ AudioProcessor_region_0_uploading_audio_to_r2 --> AudioProcessor_region_0_update_db_entry_audio_url: completion
+ AudioProcessor_region_0_update_db_entry_audio_url --> AudioProcessor_region_0_analyzing_vocal_expressions: completion
+ AudioProcessor_region_0_analyzing_vocal_expressions --> AudioProcessor_region_0_update_db_entry_predictions: completion
+ @enduml

@@ -34,3 +34,7 @@ class Theme(ColorWheel):
 
     class Blue(Color):
         pass
+
+
+if __name__ == "__main__":
+    pass

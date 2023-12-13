@@ -10,6 +10,7 @@ __all__ = ("Visitor",)
 
 class Visitor:
     visit_method_prefix: str = "visit"
+    visited: set[int]
 
     def __init_subclass__(cls, visit_method_prefix: Optional[str] = None):
         cls.visit_method_prefix = visit_method_prefix or cls.visit_method_prefix
@@ -33,11 +34,10 @@ class Visitor:
         self.visited = set()
 
     def visit_element(self, element: Type[model.Element], *args, **kwargs):
-        if (
-            not model.is_redefined(element)
-            and element.qualified_name not in self.visited
-        ):
-            self.visited.add(element.qualified_name)
+        qualified_name = model.qualified_name_of(element)
+        element_id = model.id_of(element)
+        if not model.element.is_redefined(element) and element_id not in self.visited:
+            self.visited.add(element_id)
             for base in element.__mro__:
                 method = getattr(
                     self,
@@ -51,7 +51,7 @@ class Visitor:
             self.visit_owned_elements(element, *args, **kwargs)
 
     def visit_owned_elements(self, element: Type[model.Element], *args, **kwargs):
-        for owned_element in element.owned_elements:
+        for owned_element in model.owned_elements_of(element):
             self.visit_element(owned_element, *args, **kwargs)
 
     def visit(self, element: Type[model.Model]):

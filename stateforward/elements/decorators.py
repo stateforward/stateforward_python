@@ -45,7 +45,7 @@ def behavior(
 
     @wraps(decorated)
     def wrapper(_decorated: Callable = decorated) -> Callable[[elements.Behavior], R]:
-        return model.new_element(
+        return model.element.new(
             getattr(_decorated, "__name__", repr(_decorated)),
             bases=(subtype,),
             activity=_decorated,
@@ -96,7 +96,7 @@ def constraint(
     def wrapper(
         _decorated: Callable[[elements.Constraint, elements.Event], bool] = decorated
     ):
-        return model.new_element(
+        return model.new(
             getattr(_decorated, "__name__", repr(_decorated)),
             bases=(elements.Constraint,),
             condition=_decorated,
@@ -137,7 +137,7 @@ def call_event(
 
     @wraps(decorated)
     def wrapper(_decorated: Callable[..., Any] = decorated) -> Type[elements.CallEvent]:
-        return model.new_element(
+        return model.element.new(
             _decorated.__name__,
             bases=(elements.CallEvent,),
             operation=_decorated,

@@ -1,60 +1,119 @@
-from typing import TypeVar, Generic, Callable, Union, Sequence
-from stateforward.model.element import Element
-import asyncio
+import typing
+from stateforward import model
 from enum import Enum
+import asyncio
+from stateforward.protocols.future import Future
+from stateforward.protocols.clock import Clock
+from stateforward.protocols.queue import Queue
+import logging
+import weakref
+from contextlib import asynccontextmanager
 
-T = TypeVar("T")
-Q = TypeVar("Q")
 
-__all__ = ("Interpreter", "Processing")
+T = typing.TypeVar("T", bound=model.Model)
 
 
-class Processing(Enum):
-    pending = "pending"
+class Null(asyncio.Future):
+    def __init__(self):
+        super().__init__()
+        self.set_result(None)
+
+
+NULL = Null()
+
+
+class InterpreterStep(Enum):
     complete = "complete"
     incomplete = "incomplete"
     deferred = "deferred"
 
 
-class Interpreter(Element, Generic[T, Q]):
-    """
-    The Interpreter class is responsible for processing and handling elements within a model.
+class Interpreter(model.Element, typing.Generic[T]):
+    queue: Queue = None
+    clock: Clock
+    stack: dict[model.Element, asyncio.Future] = None
+    loop: asyncio.AbstractEventLoop = None
+    log: logging.Logger = logging.getLogger(__name__)
+    running: asyncio.Event = None
 
-    It interfaces with the model by maintaining lists of active elements, a dispatch logic for events,
-    and checks for activity states. It can be subclassed to provide specific interpretation logic,
-    such as asynchronous processing capabilities.
+    def __init__(self, queue: Queue, log: logging.Logger = None):
+        self.stack = {}
+        self.queue = queue
+        self.running = asyncio.Event()
+        self.log = log or self.log
 
-    Attributes:
-        queue (Union[type[Q], Q]): The type or instance of a queue used by the interpreter to handle
-            elements. This attribute should be overridden by a subclass to provide a specific queue type or instance.
-        idle (Union[asyncio.Event]): An event that signals whether the interpreter is idle.
-            For asynchronous interpreters, this is an asyncio Event instance.
-        active (dict[Element, T]): A dictionary mapping elements to activity markers. Activity markers can be of any
-            type that signifies the state of processing of each element.
-        dispatch (Union[Callable[[Element], asyncio.Task], Callable[[Element], None]]):
-            A callable that takes an element and returns an asyncio Task (for asynchronous interpreters)
-            or None (for synchronous interpreters). This method is responsible for handling the dispatching logic.
-        is_active (Callable[[Element], bool]): A method that takes an element and returns a boolean
-            indicating whether the element is under active processing by the interpreter.
-        start (Callable[[], asyncio.Task]): A method that starts the interpreter's processing loop.
-            In an asynchronous environment, it returns an asyncio Task instance.
-        terminate (Union[Callable[[], asyncio.Future], Callable[[], "Interpreter"]]):
-            A method that stops the interpreter's processing loop and performs any necessary clean-up steps.
-            In an asynchronous environment, it returns an asyncio Future instance.
+    def send(self, event: model.Element):
+        self.log.debug(f"Received {model.qualified_name_of(event)}")
+        # push the event onto the stack
+        future = self.push(event, asyncio.Future())
+        # add the event to the queue
+        self.queue.put_nowait(event)
+        return self.loop.create_task(
+            asyncio.wait(
+                (future, self.stack.get(self)), return_when=asyncio.FIRST_COMPLETED
+            ),
+            name=f"{model.qualified_name_of(event)}.sent",
+        )
 
-    Type Parameters:
-        T: The type used to indicate activity markers for elements.
-        Q: The type of queue used for managing elements to be processed.
-    """
+    def start(
+        self,
+        loop: asyncio.AbstractEventLoop = None,
+    ):
+        qualified_name = model.qualified_name_of(self)
+        self.log.debug(f"Starting {qualified_name}")
+        loop = self.loop = loop or asyncio.get_event_loop()
+        task = loop.create_task(self.run(), name=qualified_name)
+        started_task = self.loop.create_task(self.running.wait())
+        self.push(self, task)
+        return self.loop.create_task(
+            asyncio.wait((started_task, task), return_when=asyncio.FIRST_COMPLETED),
+            name=f"{qualified_name}.starting",
+        )
 
-    queue: Union[type[Q], Q] = None
-    idle: Union[asyncio.Event] = None
-    active: dict[Element, T] = None
-    dispatch: Union[Callable[[Element], asyncio.Task], Callable[[Element], None]] = None
-    is_active: Callable[[Sequence[Element]], bool] = None
-    start: Callable[[], asyncio.Task] = None
-    terminate: Union[Callable[[], asyncio.Future], Callable[[], "Interpreter"]] = None
+    async def run(self) -> None:
+        self.log.debug(f"Running {model.qualified_name_of(self)}")
+        self.running.set()
+        try:
+            while self.running.is_set():
+                await self.step()
+                await asyncio.sleep(self.clock.multiplier)
+        except asyncio.CancelledError:
+            self.log.debug(f"Terminating {model.qualified_name_of(self)}")
+        # if self.running.is_set():
+        #     await self.terminate()
 
-    def __init__(self, *args, **kwargs):
-        self.active = {}
-        self.queue = self.queue()
+    async def step(self) -> None:
+        pass
+
+    # async def __aenter__(self):
+    #     print("WE ARE ENTERING")
+    #     return self
+    #
+    # async def __aexit__(self, exc_type, exc_val, exc_tb):
+    #     # await self.terminate()
+    #     print("WE ARE EXITING")
+    #     await asyncio.sleep(0)
+    #     pass
+
+    def is_active(self, *elements: model.Element) -> bool:
+        return all(element in self.stack for element in elements)
+
+    def push(
+        self, element: model.Element, future: typing.Union[Future, asyncio.Task] = NULL
+    ):
+        future = self.stack.setdefault(element, future)
+        return typing.cast(Future, future)
+
+    def pop(self, element: model.Element, *, result: typing.Any = NULL):
+        future = self.stack.pop(element, Null())
+        if result is not NULL and not future.done():
+            future.set_result(result)
+        return typing.cast(Future, future)
+
+    def terminate(self):
+        self.running.clear()
+        task = self.pop(self)
+        task.cancel()
+        return task
+
+    model: T = None

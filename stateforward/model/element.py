@@ -1,675 +1,416 @@
-from typing import (
-    Union,
-    Any,
-    Callable,
-    TypeVar,
-    Generator,
-    Generic,
-    Sequence,
-    ClassVar,
-    Optional,
-    ParamSpec,
-    Type,
-    TYPE_CHECKING,
-    cast,
+import typing
+from weakref import WeakValueDictionary
+import types
+
+ElementType = typing.TypeVar(
+    "ElementType", bound=typing.Union[type["Element"], "Element"]
 )
-from inspect import isclass
-from types import new_class
-from dataclasses import MISSING
-from stateforward.model.association import Association, is_association, association
+T = typing.TypeVar("T", bound="Element")
 
 
-if TYPE_CHECKING:
-    from stateforward.model import Model
+def id_of(element: ElementType) -> int:
+    return getattr(element, "__id__", id(element))
 
-T = TypeVar("T")
-P = ParamSpec("P")
-R = TypeVar("R")
 
-__all__ = (
-    "ElementInterface",
-    "Element",
-    "ElementType",
-    "is_subtype",
-    "is_element",
-    "is_owned_element",
-    "redefine",
-    "is_redefined",
-    "is_type",
-    "new_element",
-    "first_owned_element",
-    "set_attribute",
-    "remove_owned_element",
-    "last_owned_element",
-    "left_element",
-    "right_element",
-    "find_owned_elements",
-    "find_owned_element",
-    "ancestors",
-    "find_ancestors",
-    "find_ancestor",
-    "find_descendants",
-    "add_owned_element",
-    "has_descendant",
-    "all_owned_elements",
-    "traverse_pre_order",
-    "bind",
-    "remove_owned_elements",
-)
+def type_of(element: ElementType) -> type["Element"]:
+    return element.__type__
 
 
-class ElementInterface(Generic[T]):
-    """
-    ElementInterface provides a common interface for elements in the model.
-
-    This interface defines a generic contract with attributes commonly shared among elements
-    such as associations, owned elements, and model references.
-
-    Attributes:
-        name (ClassVar[str]): The name of the element.
-        qualified_name (ClassVar[str]): A fully qualified name that uniquely identifies the element.
-        type (ClassVar[Type["Element"]]): The concrete type of the element.
-        redefined_element (ClassVar[Type["Element"]]): The element that is redefined by this element.
-        associations (dict[str, Association]): A dictionary of association proxies where keys are attribute names.
-        owned_elements (Union[list["ElementType"], list[T]]): A list of elements that are owned by this element.
-        owner (Optional[Association["ElementType"]]): A proxy to the owner element, if any.
-        model (Association["Model"]): A proxy to the model that owns this element.
-        attributes (dict[Any, Any]): A dictionary of this element's attributes.
-
-    Type Parameters:
-        T: The type variable associated with the element.
-    """
-
-    # class variables
-    id: ClassVar[int] = 0
-    name: ClassVar[str] = None
-    qualified_name: ClassVar[str] = None
-    type: ClassVar[Type["Element"]] = None
-    redefined_element: ClassVar[Type["Element"]] = None
-
-    # class & instance variables
-    associations: dict[str, Association] = None
-    owned_elements: Union[list["ElementType"], list[T]] = None
-    owner: Optional[Association["ElementType"]] = None
-    model: Association["Model"] = None
-    attributes: dict[Any, Any] = None
-
-    def __reduce__(self):
-        return self.__class__, (self.__class__,)
-
-
-def is_subtype(
-    value: Any, types: Union["ElementType", Sequence["ElementType"]]
-) -> bool:
-    """Checks if a given value or its class is a subtype of another type or types.
-
-    This function determines whether `value` is a subclass of the given `types`, or
-    if the class of `value` itself is a subclass of `types` if `value` is an instance.
-
-    Args:
-        value (Any): The value, or a class object, to be checked for subtype
-            relationship.
-        types (Union["ElementType", Sequence["ElementType"]]): A single class (`ElementType`)
-            or a sequence of classes to check against. `ElementType` is a placeholder
-            and should be replaced with actual class types in implementation.
-
-    Returns:
-        bool: True if `value` is a subtype of `types`, False otherwise.
-
-    Note:
-        The function uses `issubclass()` which is a built-in function in Python to
-        check for a subclass relationship. If `value` is not a class but an
-        instance, it retrieves the class of `value` using `value.__class__` before
-        performing the check.
-    """
-    return issubclass(value if isclass(value) else value.__class__, types)
-
-
-def is_element(value: Any) -> bool:
-    """Determines if the provided value or its class is a subtype of Element.
-
-    This function is a specialized version of the `is_subtype` function that
-    specifically checks for subclass relationship with the `Element` class.
-
-    Args:
-        value (Any): The value, or a class object, to be checked for the subclass
-            relationship. It can be an instance of a class or the class itself.
-
-    Returns:
-        bool: True if `value` is a subclass or instance of a subclass of `Element`,
-              False otherwise.
-
-    Note:
-        For this function to work, the `Element` class must be defined elsewhere in
-        the codebase. This function makes use of the `is_subtype` utility function
-        to carry out the subclass check.
-
-    """
-    return is_subtype(value, (Element,))
-
-
-def first_owned_element(element: "ElementType") -> Optional["ElementType"]:
-    """
-    Get the first owned element from the given ElementType instance.
-
-    This function returns the first element in the 'owned_elements' list of
-    'element', if it exists. It returns None if 'element' has no owned elements.
-
-    Args:
-        element ("ElementType"): The ElementType instance to retrieve the first owned element from.
-
-    Returns:
-        Optional["ElementType"]: The first owned ElementType if available, None otherwise.
-    """
-    return element.owned_elements[0] if element.owned_elements else None
-
-
-def last_owned_element(
-    element: ElementInterface,
-) -> Union[Union[type["Element"], "Element"], None]:
-    """Retrieves the last element in the list of owned elements of a given element.
-
-    This function returns the last owned element if it exists; otherwise, it returns
-    None. Note that this function expects that the given element has a property
-    or attribute `owned_elements` which is a list of elements.
-
-    Args:
-        element (Union[type["Element"], "Element"]): The element or class of element
-            whose owned elements are to be inspected.
-
-    Returns:
-        Optional[Union[type["Element"], "Element"]]: The last owned element or None
-            if there are no owned elements.
-
-    """
-    owned_elements = element.owned_elements[1:]
-    return owned_elements[-1] if owned_elements else None
-
-
-def left_element(element: "ElementType") -> Union["ElementType", None]:
-    elements = element.owner.owned_elements if is_element(element.owner) else ()
-    if elements:
-        i = elements.index(element)
-        if i:
-            return elements[i - 1]
-    return None
-
-
-def right_element(element: "ElementType") -> Union["ElementType", None]:
-    elements = element.owner.owned_elements if is_element(element.owner) else ()
-    if elements:
-        i = elements.index(element)
-        if i + 1 < len(elements):
-            return elements[i + 1]
-    return None
-
-
-def find_owned_elements(
-    element: "ElementType", expr: Callable[["ElementType"], bool]
-) -> Generator["ElementType", None, None]:
-    for owned_element in element.owned_elements:
-        if expr(owned_element):
-            yield owned_element
-
-
-def find_owned_element(
-    element: "ElementType", expr: Callable[["ElementType"], bool]
-) -> Optional["ElementType"]:
-    return next(find_owned_elements(element, expr), None)
-
-
-def ancestors(element: "ElementType") -> Generator["ElementType", None, None]:
-    if is_element(element.owner):
-        yield element.owner
-        yield from ancestors(element.owner)
-
-
-def find_ancestors(
-    element: "ElementType", expr: Callable[["ElementType"], bool]
-) -> Generator["ElementType", None, None]:
-    for element in ancestors(element):
-        if expr(element):
-            yield element
-
-
-def find_ancestor(
-    element: "ElementType", expr: Callable[["ElementType"], bool]
-) -> Optional["ElementType"]:
-    return next(find_ancestors(element, expr), None)
-
-
-def find_descendants(
-    element: "ElementType",
-    expr: Callable[["ElementType"], bool],
-) -> Generator["ElementType", None, None]:
-    for element in traverse_pre_order(element):
-        if expr(element):
-            yield element
-
-
-def has_descendant(element: "ElementType", owned_element: "ElementType") -> bool:
-    return owned_element is not None and any(
-        owned_element == element for element in all_owned_elements(element)
-    )
-
-
-def traverse_pre_order(element: "ElementType"):
-    yield element
-    first_element = first_owned_element(element)
-    if is_element(first_element):
-        yield from traverse_pre_order(first_element)
-    right = right_element(element)
-    if is_element(right):
-        yield from traverse_pre_order(right)
-
-
-def specialize(
-    base_class: Type["Element"],
-    derived_class: Type["Element"],
-):
-    # specializing an element requires recursively creating copies of the owned elements
-    for inherited_element in base_class.owned_elements:
-        # create a copy of the inherited element
-        add_owned_element(
-            derived_class,
-            new_element(
-                inherited_element.name,
-                (inherited_element,),
-                redefined_element=inherited_element
-                if derived_class.redefined_element is not None
-                else None,
-            ),
-        )
-
-    # we only want to map attributes after all the sub elements have been specialized
-    if base_class.owner is None:
-        # create a map of all the elements
-        element_map = dict(
-            (element.qualified_name, element)
-            for element in traverse_pre_order(derived_class)
-        )
-        for element in element_map.values():
-            for name, value in element.attributes.items():
-                # we know attributes are proxies so update them to proxy the specialized element
-                if is_element(value):
-                    value = element_map[
-                        value.qualified_name.replace(
-                            base_class.qualified_name, derived_class.qualified_name, 1
-                        )
-                    ]
-                set_attribute(element, name, value)
-        # for name, value in derived_class.__dict__.items():
-        #     if (
-        #         name not in ElementInterface.__annotations__
-        #         and is_element(value)
-        #         and has_descendant(base_class, value)
-        #     ):
-        #         set_attribute(
-        #             derived_class,
-        #             name,
-        #             element_map[
-        #                 value.qualified_name.replace(
-        #                     base_class.qualified_name, derived_class.qualified_name, 1
-        #                 )
-        #             ],
-        #         )
-
-
-class Element(ElementInterface[T]):
-    """
-    Element is the base class for all elements in the model.
-
-    The Element class extends ElementInterface and provides a default implementation of several methods.
-    It supports customization via the '__init_subclass__' and '__define__' methods, which allows
-    properties and behavior specific to a given element to be set up.
-
-    Attributes:
-        associations (dict[str, Association]): A dictionary of association proxies where keys are attribute names.
-        owned_elements (Union[list["ElementType"], list[T]]): A list of elements that are owned by this element.
-        owner (Optional[Association["ElementType"]]): A proxy to the owner element, if any.
-        model (Association["Model"]): A proxy to the model that owns this element.
-        attributes (dict[Any, Any]): A dictionary of this element's attributes.
-
-    Type Parameters:
-        T: The type variable associated with the element.
-
-    Methods:
-        __init_subclass__: Allows subclasses to be initialized with custom attributes and behavior.
-        __define__: Allows for the definition of owned elements and other properties.
-        __new__: Overrides the default object instantiation behavior.
-    """
-
-    __init__: Callable[P, None] = object.__init__
-
-    def __init_subclass__(
-        cls: type["Element"],
-        **kwargs: dict,
-    ) -> None:
-        """
-        Initialize a new subclass of Element.
-
-        Invoked when a new subclass of Element is defined in order to customize
-        element-specific attributes, associations, and owned elements.
-        Supports specialization of the base class by copying inherited elements
-        and setting up attributes.
-
-        Parameters:
-        - cls (type["Element"]): The class object representing the subclass being initialized.
-        - name (str, optional): The name of the element. If not provided, defaults to the name of the subclass.
-        - redefined_element (ElementType, optional): The element that the subclass redefines.
-        - **kwargs (dict): Additional keyword arguments containing attribute initializations which are not directly handled.
-
-        Raises:
-        - TypeError: If an unexpected keyword is encountered in element initializations.
-
-        Note:
-        - Redefined elements allow subclassing elements to replace or extend the behavior of inherited features.
-        - The method also takes care of handling the owned elements through specialization.
-        - Attributes like "owning association" and "model" are set here.
-        """
-        cls.id = Element.id = Element.id + 1
-        attributes = cls.attributes = (cls.attributes or {}).copy()
-        name = kwargs.pop("name", None)
-        for key in kwargs:
-            if key not in attributes and getattr(cls, key, ...) is ...:
-                raise TypeError(
-                    f"{name or cls.__name__}.__init_subclass__ got an unexpected keyword {key}"
-                )
-        cls.owned_elements = []
-        cls.name = name or cls.__name__
-        cls.qualified_name = cls.__qualname__
-        cls.owner = None
-        # cls.type = cls
-        cls.model = association(cls)
-        cls.associations = {}
-        redefined_element = cls.redefined_element = kwargs.pop(
-            "redefined_element", cls.redefined_element
-        )
-        if cls.__base__.owned_elements:
-            specialize(cls.__base__, cls)
-        else:
-            cls.type = cls
-        if redefined_element is None:
-            cls.__define__(name=name, **kwargs)
-        else:
-            cls.__redefine__(cls.redefined_element, **kwargs)
-
-    @classmethod
-    def __redefine__(cls, _: "ElementType", **kwargs):
-        for key, value in kwargs.items():
-            set_attribute(cls, key, value)
-
-    def __set_name__(self, owner, name):
-        print("set name", owner, name)
-
-    @classmethod
-    def __define__(
-        cls: type["Element"],
-        name: str = None,
-        owned_elements: Sequence["ElementType"] = (),
-        **kwargs: dict,
-    ) -> None:
-        """
-        Define the class-level attributes for the Element class or subclass.
-
-        This method is used to set up the owned elements and any additional
-        attributes passed in the kwargs. It ensures that owned elements are
-        properly added and that each additional attribute is set on the class
-        if it's not already defined in the `ElementInterface`.
-
-        Args:
-            cls (type[Element]): The class on which to define the attributes.
-            name (str): The name of the element. If not provided, the __name__ attribute of the class will be used.
-            owned_elements (Sequence[ElementType]): A sequence of ElementType objects that are owned by this element.
-            **kwargs (dict): Additional keyword arguments representing the attributes to be set on the class.
-
-        Raises:
-            TypeError: If an unexpected keyword argument is provided that is not part of the class attributes or annotations.
-        """
-        for owned_element in owned_elements:
-            add_owned_element(cls, owned_element)
-        for key, value in {
-            **dict((name, getattr(cls, name, MISSING)) for name in cls.__annotations__),
-            **cls.__dict__,
-            **kwargs,
-        }.items():
-            if (
-                f"{key[-2:]}{key[:2]}" != "____"
-                and key not in ElementInterface.__annotations__
-            ):
-                set_attribute(cls, key, value)
-
-    @staticmethod
-    def __new__(
-        cls: type["Element"], *args: Sequence[Any], **kwargs
-    ) -> Union["Element", Callable[[], "Element"]]:
-        """
-        Create a new instance or a callable to instantiate the Element class.
-
-        This method intercepts the creation of a new Element object to support
-        custom initialization logic, such as setting up owned elements and attributes
-        before calling __init__. If no owner is specified, this method returns the
-        created instance directly. If an owner is given, a lambda function delaying
-        the call to __init__ is returned instead.
-
-        Parameters:
-        - cls (type[Element]): The class object from which an instance is created.
-        - *args (Sequence[Any]): Variable length argument list.
-        - **kwargs (dict): Arbitrary keyword arguments.
-
-        Returns:
-        - Union[Element, Callable[[], Element]]: An instance of the Element class or
-          a callable that, when called, returns an instance of the Element class.
-        """
-
-        self = super().__new__(cls)
-        self.owner = kwargs.pop("owner", None)
-        self.owned_elements = []
-        self.attributes = {}
-        self.model = self.owner.model if self.owner is not None else self
-        element_map = kwargs.pop(
-            "element_map", {self.qualified_name: self}
-        )  # create a namespace for the elements in the element
-        for owned_element in cls.owned_elements:
-            instance = owned_element(
-                owner=self,
-                element_map=element_map,
-            )()  # using the extra function call to prevent __init__ from being called
-            element_map[owned_element.qualified_name] = instance
-            self.owned_elements.append(instance)
-        if self.owner is None:
-            for element in reversed(element_map.values()):
-                for name, value in element.__class__.attributes.items():
-                    if is_element(value):
-                        value = element.attributes[name] = element_map[
-                            value.qualified_name
-                        ]
-                        setattr(element, str(name), value)
-                if element is not self:
-                    element.__init__(**kwargs.pop(element.qualified_name, {}))
-            # this is the root element of the element, so we can start initializing
-            return self
-        # a hack to prevent __init__ from being called
-        return lambda _self=self: _self
-
-
-TypeElement = Type[Element]
-ElementType = Union[TypeElement, Element, Association[T]]
-
-
-def all_owned_elements(
+def owned_elements_of(
     element: ElementType,
-) -> Generator[Association[ElementType], None, None]:
-    """
-    Generator function to iterate over all elements owned by a given element, including nested owned elements.
+) -> typing.Generator[ElementType, None, None]:
+    for owned_element_id in element.__owned_elements__:
+        yield element.__all_elements__[owned_element_id]
 
-    Parameters:
-        element (ElementType): The element whose owned elements are to be iterated over.
 
-    Yields:
-        Association[ElementType]: A proxy association to the next owned element in the sequence.
-    """
-    for owned_element in element.owned_elements:
+def descendants_of(element: ElementType) -> typing.Generator[ElementType, None, None]:
+    for owned_element in owned_elements_of(element):
         yield owned_element
-        yield from all_owned_elements(owned_element)
+        yield from descendants_of(owned_element)
 
 
-def new_element(name: str = None, bases: tuple[type] = (Element,), **kwargs) -> T:
-    """
-    Factory function to create a new element class or instance with the specified bases and attributes.
-
-    Parameters:
-        name (str): The name for the new element. If None, the default 'Element' name is used.
-        bases (tuple[type], optional): A tuple of base classes for the new element class.
-        **kwargs: Additional keyword arguments representing attributes and their values.
-
-    Returns:
-        ElementType: The new element class or instance created.
-    """
-    return cast(
-        ElementType,
-        new_class(name or bases[0].__name__, bases, {"name": name, **kwargs}),
+def is_descendant_of(ancestor: ElementType, descendant: ElementType) -> bool:
+    return (
+        next(
+            (element for element in descendants_of(ancestor) if element == descendant),
+            None,
+        )
+        is not None
     )
 
 
-def is_type(value: Any, element_type: ElementType) -> bool:
-    """
-    Check if the provided value is of the given element type.
-
-    Parameters:
-        value (Any): The value to perform the type check on.
-        element_type (ElementType): The element type to be checked against the value.
-
-    Returns:
-        bool: True if the value is of the given element type, False otherwise.
-    """
-    bases = value.__bases__ if isclass(value) else value.__class__.__bases__
-    return element_type in bases
+def ancestors_of(element: ElementType) -> typing.Generator[ElementType, None, None]:
+    owner = owner_of(element)
+    if owner is not None:
+        yield owner
+        yield from ancestors_of(owner)
 
 
-def is_owned_element(element: ElementType) -> bool:
-    """
-    Determine if the element is an owned element.
-
-    Parameters:
-        element (ElementType): The element to check for ownership.
-
-    Returns:
-        bool: True if the element is an owned element, i.e., it has an owner; False otherwise.
-    """
-    return is_element(element) and element.owner is not None
+def is_ancestor_of(descendant: ElementType, ancestor: ElementType) -> bool:
+    return is_descendant_of(ancestor, descendant)
 
 
-def remove_owned_element(
-    element: ElementType, owned_element: ElementType
+def set_model(element: ElementType, model: ElementType):
+    element.__model__ = id_of(model)
+    for owned_element in owned_elements_of(element):
+        set_model(owned_element, model)
+
+
+def set_owner(element: ElementType, owner: ElementType):
+    element.__owner__ = id_of(owner)
+    for owned_element in owned_elements_of(element):
+        set_owner(owned_element, element)
+    set_model(element, element.__all_elements__[owner.__model__])
+
+
+def add_owned_element_to(
+    owner: ElementType,
+    element: ElementType,
+    name: str = None,
+    *,
+    change_ownership: bool = False,
+):
+    element_owner = owner_of(element)
+    if element_owner is not None:
+        if not change_ownership:
+            raise ValueError(f"element {element.__name__} already has an owner")
+        remove_owned_element_from(element_owner, element)
+    set_owner(element, owner)
+    owner.__owned_elements__.append(id_of(element))
+    # if name is not None and not is_collection(owner):
+    #     element.__name__ = name
+    #     element.__qualname__ = f"{owner.__qualname__}.{name}"
+
+
+def remove_owned_element_from(
+    owner: ElementType, element: ElementType, *, disassociate: bool = False
 ) -> ElementType:
-    if owned_element not in element.owned_elements:
-        raise ValueError(f"element {owned_element} is not owned by {element}")
-    owned_element.owner = owned_element.model = None
-    element.owned_elements.remove(owned_element)
-    return owned_element
+    element_id = id_of(element)
+    if owner_of(element) != owner:
+        raise ValueError(f"element {element.__name__} is not owned by {owner.__name__}")
+    if disassociate:
+        for name, element in associations_of(element).items():
+            remove_association_from(element, name)
+    owner.__owned_elements__.remove(element_id)
+    element.__owner__ = None
+    return element
 
 
-def remove_owned_elements(
-    element: ElementType, *owned_elements: Sequence[ElementType]
-) -> Sequence[ElementType]:
+def remove_owned_elements_from(
+    owner: ElementType, *owned_elements: typing.Collection[ElementType]
+) -> typing.Collection[ElementType]:
     if not owned_elements:
-        owned_elements = element.owned_elements[:]
+        owned_elements = tuple(owned_elements_of(owner))
     removed_elements = tuple(
-        remove_owned_element(element, owned_element) for owned_element in owned_elements
+        remove_owned_element_from(owner, owned_element)
+        for owned_element in owned_elements
     )
     return removed_elements
 
 
-def set_qualified_name(
-    owner: ElementType, owned_element: ElementType, name: str = None
-):
-    if name is not None:
-        owned_element.name = str(name)
-    owned_element.__module__ = owner.__module__
-    owned_element.qualified_name = (
-        owned_element.__qualname__
-    ) = f"{owner.qualified_name}.{owned_element.name}"
-    owned_element.model = owner.model
-    for _owned_element in owned_element.owned_elements:
-        set_qualified_name(owned_element, _owned_element)
+def add_association_to(owner: ElementType, element: ElementType, name: str = None):
+    owner.__associations__[name] = id_of(element)
 
 
-def add_owned_element(
-    element: type[Element], owned_element: type["Element"], name: str = None
-):
-    if owned_element.owner is not None:
-        raise ValueError(
-            f"element {owned_element.qualified_name} is already owned by {owned_element.owner.qualified_name}"
+def remove_association_from(owner: ElementType, element: ElementType):
+    for name, element in associations_of(owner).items():
+        if element == element:
+            del owner.__associations__[name]
+
+
+def associations_of(element: ElementType) -> dict[str, ElementType]:
+    return dict(
+        (name, element.__all_elements__[element_id])
+        for name, element_id in element.__associations__.items()
+    )
+
+
+def associations_for(
+    element: ElementType, associated: ElementType
+) -> dict[str, ElementType]:
+    return dict(
+        (name, element.__all_elements__[element_id])
+        for name, element_id in element.__associations__.items()
+        if element_id == id_of(associated)
+    )
+
+
+def name_of(element: ElementType) -> str:
+    return element.__name__ if isinstance(element, type) else element.__class__.__name__
+
+
+def attributes_of(element: ElementType) -> dict[str, typing.Any]:
+    return element.__annotations__
+
+
+def qualified_name_of(element: ElementType) -> str:
+    owner = owner_of(element)
+    if owner is None:
+        return name_of(element)
+    return f"{qualified_name_of(owner)}.{name_of(element)}"
+
+
+def is_type(
+    element: ElementType, types: typing.Union[type, typing.Collection[type]]
+) -> bool:
+    return (
+        issubclass(element, types)
+        if isinstance(element, type)
+        else isinstance(element, types)
+    )
+
+
+def is_subtype(
+    element: ElementType, types: typing.Union[type, typing.Collection[type]]
+) -> bool:
+    if is_element(types):
+        types = (types,)
+    return element not in types and is_type(element, types)
+
+
+def is_element(value: typing.Any) -> bool:
+    return is_type(value, Element)
+
+
+def owner_of(element: ElementType) -> ElementType:
+    return (
+        element.__owner__
+        if isinstance(element, Element)
+        else element.__all_elements__.get(element.__owner__, None)
+    )
+
+
+def redefined_element_of(element: ElementType) -> ElementType:
+    return element.__redefined_element__
+
+
+def is_owner_of(owner: ElementType, element: ElementType) -> bool:
+    return owner_of(element) == owner
+
+
+def specialize(base: ElementType, derived: ElementType, **kwargs):
+    # we have to create copies of the base elements during inheritance
+    redefined_element = redefined_element_of(derived)
+    # loop through base owned element mapping
+    for owned_element_id in base.__owned_elements__:
+        # get the owned element
+        owned_element = base.__all_elements__[owned_element_id]
+        # create a new owned element
+        new_owned_element = typing.cast(
+            ElementType,
+            types.new_class(
+                owned_element.__name__,
+                (owned_element,),
+                {
+                    "redefined_element": owned_element
+                    if redefined_element is not None
+                    else None,
+                },
+            ),
         )
-    owned_element.owner = association(element)
-    element.owned_elements.append(owned_element)
-    set_qualified_name(element, owned_element, name)
-    return owned_element
+        add_owned_element_to(derived, new_owned_element)
 
+    if owner_of(base) is None:
+        base_elements = (base, *descendants_of(base))
+        new_elements = (derived, *descendants_of(derived))
+        element_map = dict(
+            (id_of(base), id_of(derived))
+            for base, derived in zip(base_elements, new_elements)
+        )
 
-def add_association(
-    element: type[Element], associated: type["Association"], name: str = None
-):
-    element.associations[name] = associated
-
-
-def set_attribute(element: type[Element], name: Union[str, int], value: Any):
-    from stateforward.model.collection import is_collection
-
-    if is_element(value):
-        # check if the element is already a proxy
-        value_is_association = is_association(value)
-        value_has_owner = value.owner is not None
-        value_is_model = value == element.model
-        if (
-            not value_is_association
-            and not value_is_model
-            and not value_has_owner
-            # and (not value_has_owner or value.owner.addr > element.addr)
-        ):
-            add_owned_element(element, value, name)
-        elif (
-            not value_is_association
-            and value.owner is not None
-            and value.owner.id > element.id
-            and not element.redefined_element
-        ):
-            remove_owned_element(value.owner, value)
-            add_owned_element(element, value, name)
-        else:
-            add_association(element, value := association(value), name)
-
-    value = element.attributes[name] = value
-    setattr(element, str(name), value)
-    return value
+        for index, element in enumerate(base_elements):
+            for name, element_id in element.__associations__.items():
+                new_element = new_elements[index]
+                associated_element = new_element.__associations__[name] = element_map[
+                    element_id
+                ]
+                setattr(new_element, name, associated_element)
+    return None
 
 
 def is_redefined(element: ElementType) -> bool:
-    return element.redefined_element is not None
+    return redefined_element_of(element) is not None
 
 
-def redefine(
+def redefine(element: ElementType, **kwargs):
+    return typing.cast(
+        ElementType,
+        types.new_class(
+            name_of(element),
+            (element,),
+            {
+                "redefined_element": element,
+                **kwargs,
+            },
+        ),
+    )
+
+
+def find_owned_elements_of(
+    element: "ElementType", condition: typing.Callable[["ElementType"], bool]
+) -> typing.Generator["ElementType", None, None]:
+    for owned_element in owned_elements_of(element):
+        if condition(owned_element):
+            yield owned_element
+
+
+def find_owned_element_of(
+    element: "ElementType", condition: typing.Callable[["ElementType"], bool]
+) -> typing.Optional["ElementType"]:
+    return next(find_owned_elements_of(element, condition), None)
+
+
+def find_ancestors_of(
+    element: "ElementType", condition: typing.Callable[["ElementType"], bool]
+) -> typing.Generator["ElementType", None, None]:
+    for element in ancestors_of(element):
+        if condition(element):
+            yield element
+
+
+def find_ancestor_of(
+    element: "ElementType", expr: typing.Callable[["ElementType"], bool]
+) -> typing.Optional["ElementType"]:
+    return next(find_ancestors_of(element, expr), None)
+
+
+def find_descendants_of(
+    element: "ElementType",
+    condition: typing.Callable[["ElementType"], bool],
+) -> typing.Generator["ElementType", None, None]:
+    for element in descendants_of(element):
+        if condition(element):
+            yield element
+
+
+def set_attribute(
     element: ElementType,
-    bases: tuple[type] = (),
-    **attributes,
-) -> ElementType:
-    """
-    redefining an element will create a new specialization of the element and overwrite the attributes of the element
-    :param element:
-    :param attributes:
-    :return:
-    """
-    return new_element(
-        bases=(element, *bases),
-        redefined_element=element,
-        **attributes,
+    name: str,
+    value: typing.Any,
+):
+    if is_element(value):
+        value_id = id_of(value)
+        if value_id not in element.__owned_elements__:
+            owner = owner_of(value)
+            change_ownership = (
+                owner is None or is_descendant_of(element, owner)
+            ) and element.__model__ != id_of(value)
+            if change_ownership:
+                add_owned_element_to(
+                    element, value, name, change_ownership=change_ownership
+                )
+        add_association_to(element, value, name)
+    setattr(element, name, value)
+
+
+def new(name: str, bases: typing.Collection[type] = None, **kwargs) -> type[T]:
+    return typing.cast(
+        type[T],
+        types.new_class(
+            name,
+            bases or (Element,),
+            {
+                **kwargs,
+            },
+        ),
     )
 
 
-def bind(element: ElementType, **attributes) -> ElementType:
-    return (
-        new_element(bases=(element,), redefined_element=element, **attributes)
-        if element.owner is not None
-        else element
-    )
+class Element(typing.Generic[T]):
+    __all_elements__: dict[int, "ElementType"] = {}
+    __id__: typing.ClassVar[int] = 0
+    __owned_elements__: list[int] = None
+    __redefined_element__: typing.Optional["Element"] = None
+    __associations__: dict[str, int] = None
+    __owner__: typing.Optional[int] = None
+    __type__: typing.ClassVar[type["Element"]] = None
+    __model__: typing.Optional[int] = None
+    __init__: typing.Callable[..., None] = object.__init__
+
+    def __init_subclass__(cls, **kwargs):
+        cls.__owned_elements__ = []
+        cls.__model__ = cls.__id__ = Element.__id__ = Element.__id__ + 1
+        cls.__all_elements__[cls.__id__] = cls
+        cls.__associations__ = {}
+        cls.__type__ = cls
+        cls.__owner__ = None
+        cls.__name__ = kwargs.pop("name", cls.__name__)
+        redefined_element = cls.__redefined_element__ = kwargs.pop(
+            "redefined_element", None
+        )
+        if is_subtype(cls.__base__, Element):
+            cls.__annotations__.update(cls.__base__.__annotations__)
+            specialize(cls.__base__, cls)
+        if redefined_element is None:
+            cls.__define__(**kwargs)
+        else:
+            cls.__redefine__(**kwargs)
+
+    @classmethod
+    def __define__(cls, **kwargs):
+        for owned_element in kwargs.get("owned_elements", ()):
+            add_owned_element_to(cls, owned_element)
+
+        def sort_namespace(namespace: dict[str, typing.Any]) -> dict[str, typing.Any]:
+            owned = {}
+            orphans = {}
+            attributes = {}
+            for key, item in namespace.items():
+                if key not in Element.__dict__:
+                    item_id = id_of(item)
+                    if is_element(item):
+                        if owner_of(item) is None:
+                            orphans[key] = (item_id, item)
+                        else:
+                            owned[key] = (item_id, item)
+                    else:
+                        attributes[key] = (item_id, item)
+
+            return {**orphans, **owned, **attributes}
+
+        sorted_namespace = sort_namespace(
+            {
+                **cls.__dict__,
+                **dict(
+                    (name, kwargs.get(name, getattr(cls, name, None)))
+                    for name in cls.__annotations__
+                ),
+            },
+        )
+        for name, (item_id, item) in sorted_namespace.items():
+            set_attribute(cls, name, item)
+
+    @classmethod
+    def __redefine__(cls, **kwargs):
+        pass
+
+    @staticmethod
+    def __new__(
+        cls: type["Element"], *args: typing.Collection[typing.Any], **kwargs
+    ) -> typing.Union["Element", typing.Callable[[], "Element"]]:
+        self = super().__new__(cls)
+        owner = self.__owner__ = kwargs.pop("owner", None)
+        self.__owned_elements__ = []
+        self.model = owner.model if owner is not None else self
+        all_elements = self.__all_elements__ = kwargs.pop(
+            "all_elements", {id_of(cls): self}
+        )  # create a namespace for the elements in the element
+        for owned_element_id in cls.__owned_elements__:
+            owned_element = cls.__all_elements__[owned_element_id]
+            instance = owned_element(
+                owner=self,
+                all_elements=all_elements,
+            )()  # using the extra function call to prevent __init__ from being called
+            all_elements[owned_element_id] = instance
+            self.__owned_elements__.append(owned_element_id)
+        if owner_of(self) is None:
+            for element in reversed(all_elements.values()):
+                for name, value in associations_of(element).items():
+                    value = all_elements[id_of(value)]
+                    setattr(element, str(name), value)
+                if element is not self:
+                    element.__init__(**kwargs.pop(qualified_name_of(element), {}))
+            # this is the root element of the element, so we can start initializing
+            return self
+        # a hack to prevent __init__ from being called
+        return lambda _self=self: _self

@@ -5,7 +5,7 @@ from asyncio import Queue as AsyncQueue
 from typing import TYPE_CHECKING
 from stateforward import model
 from stateforward import elements
-from stateforward.state_machine.log import log
+from stateforward.state_machine.log import create_logger, Logger
 
 
 async def no_async_activity(self, event: "elements.Event"):
@@ -19,9 +19,9 @@ def no_activity(self, event: "elements.Event"):
 def least_common_ancestor(
     node1: type["elements.Vertex"], node2: type["elements.Vertex"]
 ):
-    if model.has_descendant(node1.container, node2):
+    if model.is_descendant_of(node1.container, node2):
         lca = node1.container
-    elif model.has_descendant(node2.container, node1):
+    elif model.is_descendant_of(node2.container, node1):
         lca = node2.container
     else:
         container = node1.container
@@ -41,28 +41,33 @@ class StateMachinePreprocessor(model.Preprocessor):
         preprocessed (set): A set to keep track of already preprocessed elements to avoid re-processing.
     """
 
-    log: log = log.getLogger("StateMachinePreprocessor")
+    log: Logger = create_logger("StateMachinePreprocessor")
 
     def preprocess_vertex(self, element: type["elements.Vertex"]):
-        logger = log.getLogger(f"preprocess_vertex({element.qualified_name})")
-        logger.debug(f"finding container for {element.qualified_name}")
-        container = model.find_ancestor(
+        logger = create_logger(f"preprocess_vertex({model.qualified_name_of(element)})")
+        logger.debug(f"finding container for {model.qualified_name_of(element)}")
+        container = model.find_ancestor_of(
             element,
-            lambda owned_element: model.is_subtype(owned_element, elements.Region),
+            lambda owned_element: model.element.is_subtype(
+                owned_element, elements.Region
+            ),
         )
+
         if container is None:
-            logger.error(f"vertex {element.qualified_name} has no container")
-        logger.debug(f"found container {container.qualified_name}")
+            logger.error(f"vertex {model.qualified_name_of(element)} has no container")
+        logger.debug(f"found container {model.qualified_name_of(container)}")
         model.set_attribute(element, "container", container)
 
-        outgoing = list(element.outgoing.elements()) if element.outgoing else []
-        incoming = list(element.incoming.elements()) if element.incoming else []
-        for transition in model.find_descendants(
-            element.model,
-            lambda owned_element: model.is_subtype(owned_element, elements.Transition),
+        outgoing = list(element.outgoing) if element.outgoing else []
+        incoming = list(element.incoming) if element.incoming else []
+        for transition in model.find_descendants_of(
+            model.of(element),
+            lambda owned_element: model.element.is_subtype(
+                owned_element, elements.Transition
+            ),
         ):
             if (
-                transition.source or transition.owner
+                transition.source or model.owner_of(transition)
             ) == element and transition not in outgoing:
                 outgoing.append(transition)
             elif transition.target == element and transition not in incoming:
@@ -74,9 +79,10 @@ class StateMachinePreprocessor(model.Preprocessor):
         if element.submachine is None:
             self.preprocess_composite_state(element)
         else:
-            for region in element.submachine.region.elements():
-                model.set_attribute(region, "state", element)
-                model.set_attribute(region, "state_machine", None)
+            self.log.warning(f"preprocessing submachine {element}")
+            # for region in element.submachine.regions.elements():
+            #     model.set_attribute(region, "state", element)
+            #     model.set_attribute(region, "state_machine", None)
 
         self.preprocess_vertex(element)
 
@@ -85,50 +91,60 @@ class StateMachinePreprocessor(model.Preprocessor):
                 model.set_attribute(
                     element,
                     behavior,
-                    model.new_element(behavior, bases=(elements.Behavior,)),
+                    model.element.new(behavior, bases=(elements.Behavior,)),
                 )
 
     def preprocess_composite_state(self, element: type["elements.CompositeState"]):
         transitions = []
         subvertex = []
         regions = []
-        for owned_element in element.owned_elements:
-            if model.is_subtype(owned_element, elements.Transition):
+        for owned_element in [
+            _owned_element
+            for _owned_element in model.owned_elements_of(element)
+            if not any(
+                model.is_descendant_of(region, _owned_element) for region in regions
+            )
+        ]:
+            if model.element.is_subtype(owned_element, elements.Transition):
                 transitions.append(owned_element)
-            elif model.is_type(owned_element, model.Collection) and all(
-                model.is_subtype(_child, elements.Transition)
-                and not model.is_association(_child)
-                for _child in owned_element.owned_elements
+            elif model.element.is_type(owned_element, model.Collection) and all(
+                model.element.is_subtype(_child, elements.Transition)
+                for _child in owned_element
             ):
-                transitions.extend(owned_element.elements())
-            elif model.is_subtype(owned_element, elements.Vertex):
+                transitions.extend(owned_element)
+            elif model.element.is_subtype(owned_element, elements.Vertex):
                 subvertex.append(owned_element)
-            elif model.is_subtype(owned_element, elements.Region):
+            elif model.element.is_subtype(owned_element, elements.Region):
                 regions.append(owned_element)
         if subvertex:
-            new_region = model.new_element(
+            new_region = model.element.new(
                 f"region_{len(regions)}",
                 bases=(elements.Region,),
             )
-            for owned_element in subvertex + transitions:
-                if owned_element.owner:
-                    owned_element = model.remove_owned_element(
-                        owned_element.owner, owned_element
-                    )
-                if owned_element.name in element.attributes:
-                    model.set_attribute(new_region, owned_element.name, owned_element)
-                else:
-                    model.add_owned_element(new_region, owned_element)
             model.set_attribute(
                 element,
-                "region",
+                "regions",
                 model.collection(new_region, *regions),
             )
+            for owned_element in subvertex + transitions:
+                if (
+                    owner_of_owned_element := model.owner_of(owned_element)
+                ) is not None:
+                    owned_element = model.remove_owned_element_from(
+                        owner_of_owned_element, owned_element
+                    )
+                    model.set_attribute(owned_element, "container", new_region)
+                if (
+                    owned_element_name := model.name_of(owned_element)
+                ) in model.attributes_of(element):
+                    model.set_attribute(new_region, owned_element_name, owned_element)
+                else:
+                    model.add_owned_element_to(new_region, owned_element)
         elif regions:
-            model.set_attribute(element, "region", model.collection(*regions))
+            model.set_attribute(element, "regions", model.collection(*regions))
 
-        else:
-            model.set_attribute(element, "region", model.collection())
+        # else:
+        #     model.set_attribute(element, "region", model.collection())
 
     def create_transition_path(self, transition: type["elements.Transition"]):
         enter = []
@@ -136,28 +152,28 @@ class StateMachinePreprocessor(model.Preprocessor):
         # TODO this can be reduced
         if transition.kind == elements.TransitionKind.external:
             leave.append(transition.source)
-            for ancestor in model.ancestors(transition.source):
-                if ancestor.qualified_name == transition.container.qualified_name:
+            for ancestor in model.ancestors_of(transition.source):
+                if model.id_of(ancestor) == model.id_of(transition.container):
                     break
-                if model.is_subtype(ancestor, elements.State):
+                if model.element.is_subtype(ancestor, elements.State):
                     leave.append(ancestor)
-            for ancestor in model.ancestors(transition.target):
-                if ancestor.qualified_name == transition.container.qualified_name:
+            for ancestor in model.ancestors_of(transition.target):
+                if model.id_of(ancestor) == model.id_of(transition.container):
                     break
-                if model.is_subtype(ancestor, elements.State):
+                if model.element.is_subtype(ancestor, elements.State):
                     enter.append(ancestor)
             enter.append(transition.target)
         elif transition.kind == elements.TransitionKind.local:
-            for ancestor in model.ancestors(transition.target):
-                if ancestor.qualified_name == transition.source.qualified_name:
+            for ancestor in model.ancestors_of(transition.target):
+                if model.id_of(ancestor) == model.id_of(transition.source):
                     break
-                if model.is_subtype(ancestor, elements.State):
+                if model.element.is_subtype(ancestor, elements.State):
                     enter.append(ancestor)
             enter.append(transition.target)
         elif transition.kind == elements.TransitionKind.self:
             leave.append(transition.source)
             enter.append(transition.target)
-        return model.new_element(
+        return model.element.new(
             "path",
             bases=(elements.TransitionPath,),
             enter=model.collection(*enter),
@@ -169,12 +185,12 @@ class StateMachinePreprocessor(model.Preprocessor):
 
     def preprocess_transition(self, element: type["elements.Transition"]):
         if element.source is None:
-            owner = element.owner
-            if model.is_subtype(owner, model.Collection):
-                owner = owner.owner
-            if not model.is_subtype(owner, elements.Vertex):
+            owner = model.owner_of(element)
+            if model.element.is_subtype(owner, model.Collection):
+                owner = model.owner_of(owner)
+            if not model.element.is_subtype(owner, elements.Vertex):
                 raise ValueError(
-                    f"transition {element.qualified_name} has no source and is not owned by a state"
+                    f"transition {model.qualified_name_of(element)} has no source and is not owned by a state"
                 )
             # transition source always defaults to the parent
             model.set_attribute(element, "source", owner)
@@ -182,10 +198,10 @@ class StateMachinePreprocessor(model.Preprocessor):
         # yield from self.wait_for_completion_of(element.source)
         self.preprocess_element(element.source)
         if element.events is None:
-            if model.is_subtype(element.source, elements.State):
+            if model.element.is_subtype(element.source, elements.State):
                 completion = element.source.completion
                 if completion is None:
-                    completion = model.new_element(
+                    completion = model.element.new(
                         f"completion",
                         (elements.CompletionEvent,),
                     )
@@ -203,11 +219,11 @@ class StateMachinePreprocessor(model.Preprocessor):
             model.set_attribute(
                 element,
                 "effect",
-                model.new_element(
+                model.element.new(
                     "effect",
                     (elements.Behavior,),
                     activity=no_async_activity
-                    if element.model.concurrency_kind
+                    if model.of(element).concurrency_kind
                     is elements.ConcurrencyKind.asynchronous
                     else no_activity,
                 ),
@@ -217,14 +233,16 @@ class StateMachinePreprocessor(model.Preprocessor):
             element.kind = elements.TransitionKind.self
         elif element.target is None:
             element.kind = elements.TransitionKind.internal
-        elif model.has_descendant(element.source, element.target):
+        elif model.is_descendant_of(element.source, element.target):
             element.kind = elements.TransitionKind.local
         else:
             self.preprocess_element(element.target)
             element.kind = elements.TransitionKind.external
             container = least_common_ancestor(element.source, element.target)
         if container is None:
-            raise ValueError(f"transition {element.qualified_name} has no container")
+            raise ValueError(
+                f"transition {model.qualified_name_of(element)} has no container"
+            )
         model.set_attribute(element, "container", container)
         path = self.create_transition_path(element)
         model.set_attribute(element, "path", path)
@@ -233,37 +251,41 @@ class StateMachinePreprocessor(model.Preprocessor):
         from stateforward.elements import StateMachine
 
         def initial_filter(vertex):
-            return model.is_subtype(vertex, elements.Initial)
+            return model.element.is_subtype(vertex, elements.Initial)
 
         model.set_attribute(
             element,
             "subvertex",
             model.collection(
-                *model.find_owned_elements(
+                *model.find_owned_elements_of(
                     element,
-                    lambda owned_element: model.is_subtype(
+                    lambda owned_element: model.element.is_subtype(
                         owned_element, elements.Vertex
                     ),
                 )
             ),
         )
         initial = getattr(element, "initial", None)
-        if initial is None:
-            initial = model.find_owned_element(element, initial_filter)
-            model.set_attribute(element, "initial", initial)
 
-        parent = element.owner
-        if not model.is_subtype(parent, (StateMachine, elements.State)):
-            parent = parent.owner
+        if initial is None:
+            initial = model.find_owned_element_of(element, initial_filter)
+            model.set_attribute(element, "initial", initial)
+        else:
+            self.log.debug(
+                f"region {model.qualified_name_of(element)} has initial {model.qualified_name_of(initial)}"
+            )
+        parent = model.owner_of(element)
+        if not model.element.is_subtype(parent, (StateMachine, elements.State)):
+            parent = model.owner_of(parent)
         model.set_attribute(
             element,
             "state",
-            parent if model.is_subtype(parent, elements.State) else None,
+            parent if model.element.is_subtype(parent, elements.State) else None,
         )
         model.set_attribute(
             element,
             "state_machine",
-            parent if model.is_subtype(parent, StateMachine) else None,
+            parent if model.element.is_subtype(parent, StateMachine) else None,
         )
 
     def preprocess_processor(self, element: type["model.Interpreter"]):
@@ -276,7 +298,7 @@ class StateMachinePreprocessor(model.Preprocessor):
 
             async def __call__(self, *args, **kwargs):
                 value = await self.operation(*args, **kwargs)
-                self.results.set_result(value)
+                await self.model.interpreter.send(self.__class__())
                 return value
 
         else:
@@ -292,7 +314,7 @@ class StateMachinePreprocessor(model.Preprocessor):
         element.condition = asyncio.Condition
 
     def preprocess_behavior(self, element: type["elements.Behavior"]):
-        concurrency_kind = element.model.concurrency_kind
+        concurrency_kind = model.of(element).concurrency_kind
         activity = element.activity
         if activity is None:
             if concurrency_kind == elements.ConcurrencyKind.asynchronous:
@@ -307,20 +329,20 @@ class StateMachinePreprocessor(model.Preprocessor):
             def activity(self, event: "elements.Event", _activity=element.activity):
                 return _activity(self, event)
 
-        activity.__module__ = element.model.__module__
-        activity.__qualname__ = f"{element.qualified_name}.activity"
+        activity.__module__ = model.of(element).__module__
+        activity.__qualname__ = f"{model.qualified_name_of(element)}.activity"
         model.set_attribute(element, "activity", activity)
-        context = model.find_ancestor(
-            element, lambda ancestor: model.is_subtype(ancestor, elements.Behavior)
+        context = model.find_ancestor_of(
+            element,
+            lambda ancestor: model.element.is_subtype(ancestor, elements.Behavior),
         )
         self.preprocess_owned_elements(element)
 
         events = []
-        for descendant in model.all_owned_elements(element):
-            if model.is_subtype(descendant, elements.Event):
+        for descendant in model.descendants_of(element):
+            if model.element.is_subtype(descendant, elements.Event):
                 events.append(descendant)
         model.set_attribute(element, "pool", model.collection(*events))
-
         model.set_attribute(
             element,
             "context",
@@ -332,18 +354,20 @@ class StateMachinePreprocessor(model.Preprocessor):
             AsyncStateMachineInterpreter,
         )
 
-        self.log.debug(f"preprocessing state machine {element.qualified_name}")
+        self.log.debug(
+            f"preprocessing state machine {model.qualified_name_of(element)}"
+        )
         self.preprocess_composite_state(element)
         # if element.region.length == 0:
-        #     raise ValueError(f"state machine {element.qualified_name} has no regions")
+        #     raise ValueError(f"state machine {model.qualified_name_of(element)} has no regions")
         self.preprocess_behavior(element)
         model.sort_collection(
             element.pool,
-            lambda event: not model.is_subtype(event, elements.CompletionEvent),
+            lambda event: not model.element.is_subtype(event, elements.CompletionEvent),
         )
-        if element.model.concurrency_kind is None:
-            model.set_attribute(
-                element,
-                "interpreter",
-                model.new_element("interpreter", bases=(AsyncStateMachineInterpreter,)),
-            )
+        # if model.of(element).concurrency_kind is None:
+        #     model.set_attribute(
+        #         element,
+        #         "interpreter",
+        #         model.element.new("interpreter", bases=(AsyncStateMachineInterpreter,)),
+        #     )

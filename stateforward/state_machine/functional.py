@@ -19,7 +19,7 @@ def submachine_state(
 
 def submachine_region(state_machine: type[elements.StateMachine], **attributes):
     state = submachine_state(state_machine, **attributes)
-    region = model.new_element(
+    region = model.new(
         f"{state_machine.name}SubmachineRegion",
         (elements.Region,),
         owned_elements=(state, elements.initial(state)),
@@ -27,5 +27,5 @@ def submachine_region(state_machine: type[elements.StateMachine], **attributes):
     return region
 
 
-def dispatch(event: elements.Event, element: model.Element):
-    return element.model.interpreter.dispatch(event)
+def send(event: elements.Event, element: model.Element):
+    return element.model.interpreter.send(event)

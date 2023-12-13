@@ -13,17 +13,16 @@ from examples.microwave import (
     ClockSetEvent,
     ExhaustFanOnEvent,
 )
-from stateforward.state_machine.log import log
-
-log.basicConfig(level=log.ERROR)
+from stateforward.state_machine.log import create_logger
 
 
 @pytest_asyncio.fixture
 async def microwave():
     microwave = mock(Microwave())
+    print("WE ARE STARTING HERE")
     await microwave.interpreter.start()
     yield microwave
-    await microwave.interpreter.terminate()
+    # await microwave.interpreter.terminate()
 
 
 @pytest.mark.asyncio
@@ -52,9 +51,6 @@ async def test_microwave_initial_state(microwave: Mocked[Microwave]):
     ).was_executed()
 
 
-#
-
-
 @pytest.mark.asyncio
 async def test_door_open(microwave: Mocked[Microwave]):
     await microwave.dispatch(DoorOpenEvent())
@@ -73,7 +69,6 @@ async def test_door_close(microwave: Mocked[Microwave]):
 @pytest.mark.asyncio
 async def test_power_off(microwave: Mocked[Microwave]):
     await microwave.power_off()
-    await microwave.interpreter.idle.wait()
     expect.only(microwave.power.off).was_entered()
     expect.only(
         microwave.power.on.light.off,
@@ -179,11 +174,11 @@ async def test_oven_light_region(microwave: Mocked[Microwave]):
 @pytest.mark.asyncio
 async def test_clock_flashing(microwave: Mocked[Microwave]):
     microwave.reset_mocked()
-    await asyncio.sleep(1)
+    await asyncio.sleep(2.1)
     expect.only(microwave.power.on.clock.flashing.on).was_entered()
     expect.only(microwave.power.on.clock.flashing.off).was_exited()
     microwave.reset_mocked()
-    await asyncio.sleep(1)
+    await asyncio.sleep(2.1)
     expect.only(microwave.power.on.clock.flashing.off).was_entered()
     expect.only(microwave.power.on.clock.flashing.on).was_exited()
 
@@ -194,6 +189,6 @@ async def test_clock_set(microwave: Mocked[Microwave]):
     expect.only(microwave.power.on.clock.ticking).was_entered()
 
 
-@pytest.mark.asyncio
-async def test_cook_start(microwave: Mocked[Microwave]):
-    pass
+# @pytest.mark.asyncio
+# async def test_cook_start(microwave: Mocked[Microwave]):
+#     pass

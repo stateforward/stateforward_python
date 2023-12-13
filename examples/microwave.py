@@ -2,7 +2,6 @@ import stateforward as sf
 import asyncio
 from dataclasses import dataclass
 from datetime import timedelta, datetime
-from stateforward.state_machine.generators import PlantUMLGenerator
 
 
 class DoorOpenEvent(sf.Event):
@@ -49,8 +48,12 @@ def display_clear(self, event: sf.Event):
     print("")
 
 
+def throw(exception: Exception):
+    raise exception
+
+
 def door_is_open(self, event: sf.Event = None):
-    return self.model.door.open in self.model.interpreter.active
+    return self.model.door.open in self.model.interpreter.stack
 
 
 class Microwave(sf.AsyncStateMachine):
@@ -93,15 +96,15 @@ class Microwave(sf.AsyncStateMachine):
 
                 class flashing(sf.State):
                     class on(sf.State):
-                        entry = sf.bind(display_time)
+                        entry = sf.redefine(display_time)
 
                     class off(sf.State):
-                        entry = sf.bind(display_clear)
+                        entry = sf.redefine(display_clear)
 
                     # initial = sf.initial(on)
                     flashing_transitions = sf.collection(
-                        sf.transition(sf.after(seconds=1), source=on, target=off),
-                        sf.transition(sf.after(seconds=1), source=off, target=on),
+                        sf.transition(sf.after(seconds=2), source=on, target=off),
+                        sf.transition(sf.after(seconds=2), source=off, target=on),
                     )
 
                 initial = sf.initial(flashing.off)
@@ -191,7 +194,6 @@ class Microwave(sf.AsyncStateMachine):
                     sf.transition(target=on.high, guard=speed_is_high),
                     sf.transition(target=on.medium, guard=speed_is_medium),
                     sf.transition(target=on.low),
-                    name="speed_choice",
                 )
 
                 off = sf.simple_state("off")
@@ -219,8 +221,9 @@ class Microwave(sf.AsyncStateMachine):
 if __name__ == "__main__":
 
     async def main():
-        # sf.dump(Microwave)
+        sf.dump(Microwave)
         microwave = Microwave()
+
         await microwave.interpreter.start()
         print(microwave.state)
         assert microwave.power.on in microwave.state

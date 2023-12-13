@@ -1,4 +1,4 @@
-from stateforward.model.element import Element, new_element
+from stateforward.model.element import Element, new
 from typing import Any
 
 
@@ -21,4 +21,4 @@ class Attribute(Element):
 
 
 def attribute(default_value: Any = None):
-    return new_element(bases=(Attribute,), default_value=default_value)
+    return new(bases=(Attribute,), default_value=default_value)

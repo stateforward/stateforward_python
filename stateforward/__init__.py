@@ -109,32 +109,11 @@ pip install stateforward
         ```
 
 """
-from .elements.elements import *
-from .elements.functional import *
-from .state_machine.elements import *
-from .elements import decorators
-from .state_machine.functional import *
-from .model.model import Model, dump
-from .model.element import (
-    Element,
-    is_subtype,
-    new_element,
-    redefine,
-    set_attribute,
-    find_owned_elements,
-    bind,
-    find_owned_element,
-    traverse_pre_order,
-    all_owned_elements,
-    has_descendant,
-    ElementType,
-    ElementInterface,
-    is_element,
-)
-from .model.collection import Collection, collection, is_collection
-from .model.association import Association, association, is_association
-from .model.preprocessor import Preprocessor
-from .model.validator import Validator
-from .model.interpreter import Interpreter
-from .state_machine import generators
+from . import elements
+from .elements import *
+
 from . import state_machine
+from .state_machine import *
+from . import model
+from .model import *
+from . import protocols

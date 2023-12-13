@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 import asyncio
 import threading
 import queue
+from stateforward.protocols import Future
 import multiprocessing
 
 __all__ = [
@@ -446,8 +447,8 @@ class Event(model.Element):
         name (str): The name of the event.
         qualified_name (str): Fully qualified name that includes the hierarchy.
         type (Type['Event']): The Python type of this class.
-        redefined_element (Type['Event']): Element (if any) that this one redefines.
-        associations (dict[str, Association]): Associations linked to the event.
+        __redefined_element__ (Type['Event']): Element (if any) that this one redefines.
+        __associations__ (dict[str, Association]): Associations linked to the event.
         owned_elements (list[ElementType]): Child elements owned by the event.
         model (Association['Model']): Association to the model that contains the event.
         attributes (dict[Any, Any]): Custom attributes associated with the event.
@@ -535,7 +536,7 @@ class ChangeEvent(Event):
     """
 
     condition: ConditionType = None
-    expr: Callable[["ChangeEvent", "Event"], bool] = None
+    expr: Callable[["Event"], bool] = None
 
 
 class CompletionEvent(Event):
@@ -569,7 +570,7 @@ class Constraint(model.Element):
             should return True if the transition condition is met, or False otherwise.
     """
 
-    condition: Callable[["Constraint", "Event"], bool] = None
+    condition: Callable[["Event"], Union[Future, bool]] = None
 
 
 class CompositeState(model.Element):
@@ -590,7 +591,7 @@ class CompositeState(model.Element):
         Element (type[T]): Inherits methods and attributes from the Element class.
     """
 
-    region: model.Collection["Region"] = None
+    regions: model.Collection["Region"] = None
 
 
 class State(Vertex, CompositeState):
@@ -723,7 +724,7 @@ class Behavior(model.Model):  # , Generic[T]):
     """
 
     concurrency_kind: ClassVar[ConcurrencyKind] = None
-    activity: Callable[["Behavior", "Event"], Union[Any, asyncio.Task]] = None
+    activity: Callable[["Event"], Future] = None
     context: Union[T, "Behavior"] = None
     pool: model.Collection[Event] = None
 
@@ -749,8 +750,8 @@ class StateMachine(Behavior, CompositeState):
     def state(self) -> tuple[State]:
         return tuple(
             cast(State, value)
-            for value in self.interpreter.active.keys()
-            if model.is_subtype(value, State)
+            for value in self.interpreter.stack.keys()
+            if model.element.is_subtype(value, State)
         )
 
 
