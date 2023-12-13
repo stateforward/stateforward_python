@@ -5,6 +5,7 @@ from tests.mock import mocked, Mocked, mock, expect
 from datetime import datetime
 from examples.microwave import (
     Microwave,
+    Microwave2,
     DoorOpenEvent,
     DoorCloseEvent,
     OvenLightOnEvent,
@@ -18,7 +19,7 @@ from stateforward.state_machine.log import create_logger
 
 @pytest_asyncio.fixture
 async def microwave():
-    microwave = mock(Microwave())
+    microwave = mock(Microwave2())
     print("WE ARE STARTING HERE")
     await microwave.interpreter.start()
     yield microwave
