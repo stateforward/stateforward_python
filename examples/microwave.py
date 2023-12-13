@@ -218,6 +218,10 @@ class Microwave(sf.AsyncStateMachine):
     )
 
 
+class Microwave2(Microwave):
+    pass
+
+
 if __name__ == "__main__":
 
     async def main():

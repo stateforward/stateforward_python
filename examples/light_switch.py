@@ -173,12 +173,16 @@ class LightSwitch(sf.AsyncStateMachine):
     )
 
 
+class ThreeWay(LightSwitch):
+    pass
+
+
 if __name__ == "__main__":
 
     async def light_switch_main():
         import pickle
 
-        light_switch = LightSwitch()
+        light_switch = ThreeWay()
         print(light_switch.regions)
         light_switch.interpreter.start()
         await asyncio.sleep(1)

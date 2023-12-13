@@ -7,6 +7,7 @@ from stateforward.model.element import (
     qualified_name_of,
     owned_elements_of,
     associations_of,
+    ancestors_of,
 )
 
 if typing.TYPE_CHECKING:

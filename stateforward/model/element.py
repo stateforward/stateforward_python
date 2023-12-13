@@ -190,7 +190,6 @@ def is_owner_of(owner: ElementType, element: ElementType) -> bool:
 
 def specialize(base: ElementType, derived: ElementType, **kwargs):
     # we have to create copies of the base elements during inheritance
-    redefined_element = redefined_element_of(derived)
     # loop through base owned element mapping
     for owned_element_id in base.__owned_elements__:
         # get the owned element
@@ -202,13 +201,14 @@ def specialize(base: ElementType, derived: ElementType, **kwargs):
                 owned_element.__name__,
                 (owned_element,),
                 {
-                    "redefined_element": owned_element
-                    if redefined_element is not None
-                    else None,
+                    "redefined_element": base,
                 },
             ),
         )
         add_owned_element_to(derived, new_owned_element)
+        # for name, value in associations_of(base).items():
+        #     if value == owned_element:
+        #         add_association_to(derived, new_owned_element, name)
 
     if owner_of(base) is None:
         base_elements = (base, *descendants_of(base))
@@ -329,7 +329,8 @@ class Element(typing.Generic[T]):
 
     def __init_subclass__(cls, **kwargs):
         cls.__owned_elements__ = []
-        cls.__model__ = cls.__id__ = Element.__id__ = Element.__id__ + 1
+        cls.__id__ = Element.__id__ = Element.__id__ + 1
+        cls.__model__ = cls.__id__
         cls.__all_elements__[cls.__id__] = cls
         cls.__associations__ = {}
         cls.__type__ = cls
