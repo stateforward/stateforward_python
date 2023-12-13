@@ -57,3 +57,4 @@ from .preprocessor import StateMachinePreprocessor
 from .interpreters import AsyncStateMachineInterpreter
 from .validator import StateMachineValidator
 from .functional import *
+from .log import create_logger

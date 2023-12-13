@@ -385,13 +385,12 @@ class Element(typing.Generic[T]):
     def __redefine__(cls, **kwargs):
         pass
 
-    @staticmethod
-    def __new__(
-        cls: type["Element"], *args: typing.Collection[typing.Any], **kwargs
-    ) -> typing.Union["Element", typing.Callable[[], "Element"]]:
+    @classmethod
+    def __create__(cls, **kwargs):
         self = super().__new__(cls)
         owner = self.__owner__ = kwargs.pop("owner", None)
         self.__owned_elements__ = []
+        self.__id__ = kwargs.pop("id", id(self))
         self.model = owner.model if owner is not None else self
         all_elements = self.__all_elements__ = kwargs.pop(
             "all_elements", {id_of(cls): self}
@@ -404,10 +403,17 @@ class Element(typing.Generic[T]):
             )()  # using the extra function call to prevent __init__ from being called
             all_elements[owned_element_id] = instance
             self.__owned_elements__.append(owned_element_id)
+        return self
+
+    @staticmethod
+    def __new__(
+        cls: type["Element"], *args: typing.Collection[typing.Any], **kwargs
+    ) -> typing.Union["Element", typing.Callable[[], "Element"]]:
+        self = cls.__create__(**kwargs)
         if owner_of(self) is None:
-            for element in reversed(all_elements.values()):
+            for element in reversed(self.__all_elements__.values()):
                 for name, value in associations_of(element).items():
-                    value = all_elements[id_of(value)]
+                    value = self.__all_elements__[id_of(type(value))]
                     setattr(element, str(name), value)
                 if element is not self:
                     element.__init__(**kwargs.pop(qualified_name_of(element), {}))

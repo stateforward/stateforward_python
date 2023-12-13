@@ -68,7 +68,7 @@ class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
         self, behavior: elements.Behavior, event: elements.Event
     ):
         value = behavior.activity(event)
-        if asyncio.isfuture(value):
+        if asyncio.isfuture(value) or asyncio.iscoroutine(value):
             value = await value
         return value
 

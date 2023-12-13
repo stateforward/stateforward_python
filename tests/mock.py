@@ -17,11 +17,11 @@ class MockedElement(sf.Element):
 
 
 def mocked_behavior(name: str):
-    return sf.new(name, bases=(sf.Behavior,), activity=Mock(name=name))
+    return sf.element.new(name, bases=(sf.Behavior,), activity=Mock(name=name))
 
 
 def mocked_constraint(name: str):
-    return sf.new(name, bases=(sf.Constraint,), condition=Mock(name=name))
+    return sf.element.new(name, bases=(sf.Constraint,), condition=Mock(name=name))
 
 
 def mock(model: sf.Model):
@@ -42,11 +42,15 @@ def mock(model: sf.Model):
                 side_effect=element.condition, name=sf.qualified_name_of(element)
             )
             mocked_model.__mocked__.add(element.condition)
-        elif isinstance(element, sf.Transition):
-            if element.effect is None:
-                effect = mocked_behavior("effect")
-                sf.set_attribute(element, "effect", effect)
-                mocked_model.__mocked__.add(effect.activity)
+        # elif isinstance(element, sf.Transition):
+        #     if element.effect is None:
+        #         # effect = mocked_behavior("effect")
+        #         behavior = mocked_behavior("effect")
+        #         sf.set_attribute(element, "effect", behavior)
+        #         instance = behavior(owner=element)
+        #         setattr(element, "effect", instance)
+        #         element.__all_elements__[sf.id_of(behavior)] = instance
+        #         mocked_model.__mocked__.add(behavior.activity)
     return mocked_model
 
 

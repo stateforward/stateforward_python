@@ -575,7 +575,7 @@ from .element import (
     new,
 )
 from .collection import Collection, collection, sort_collection, extend_collection
-from .model import Model, dump, of
+from .model import Model, dump, of, all_instances
 from .preprocessor import Preprocessor
 from .interpreter import Interpreter, InterpreterStep
 from .validator import Validator
