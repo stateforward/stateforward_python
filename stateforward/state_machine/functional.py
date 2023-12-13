@@ -1,7 +1,6 @@
-from typing import Callable, Union, Sequence, Type
-from datetime import datetime, timedelta
 from stateforward import model
 from stateforward.elements import elements
+import typing
 
 
 def submachine_state(
@@ -9,11 +8,6 @@ def submachine_state(
 ):
     state = model.redefine(state_machine, bases=(elements.State,), **attributes)
     model.set_attribute(state, "submachine", state)
-    # state = model.new_element(
-    #     name or state_machine.name,
-    #     (elements.State,),
-    #     submachine=submachine,
-    # )
     return state
 
 
@@ -27,5 +21,15 @@ def submachine_region(state_machine: type[elements.StateMachine], **attributes):
     return region
 
 
-def send(event: elements.Event, element: model.Element):
-    return element.model.interpreter.send(event)
+def send(
+    event: elements.Event,
+    element: typing.Optional[typing.Union[model.Element, str]] = None,
+) -> typing.Union[typing.Awaitable, list[typing.Awaitable]]:
+    if element is None:
+        return [
+            model.of(element).interpreter.send(event)
+            for element in model.all_instances().values()
+        ]
+    if isinstance(element, str):
+        element = model.all_instances()[element]
+    return model.of(element).interpreter.send(event)

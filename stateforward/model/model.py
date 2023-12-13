@@ -19,45 +19,12 @@ __all__ = (
     "Model",
     "of",
     "dump",
+    "all_instances",
 )
 
 
 class Model(Element):
-    """A base Model class for handling processing elements.
-
-    `Model` serves as a template for creating models which include preprocessing,
-    validation, and interpretation logic. Subclasses of Model should define their
-    specific processing behavior.
-
-    Attributes:
-        __preprocessor__ (ClassVar[Preprocessor], optional): A class-level attribute
-            that holds a `Preprocessor` instance or None by default. The `Preprocessor`
-            instance is responsible for preparing input data for the model.
-        __validator__ (ClassVar[Validator], optional): A class-level attribute that
-            holds a `Validator` instance or None by default. The `Validator` instance is
-            responsible for ensuring that the model's input data is valid.
-        __interpreter__ (ClassVar[type[Interpreter]], optional): A class-level attribute
-            that holds a 'Interpreter' class or None by default. The 'Interpreter'
-            class is responsible for interpreting the model's output.
-
-    To create a subclass of Model with specific processing components:
-
-    ```python
-    class MyModel(Model, preprocessor=MyPreprocessor, validator=MyValidator,
-                  interpreter=MyInterpreter):
-        pass
-    ```
-
-    When creating a subclass, if specific processors are not provided, the
-    class-level attributes from the `Model` base class will be used.
-
-    Note:
-        - If a preprocessor is provided and a preprocessor already exists, the
-          existing one's `preprocess` method will be called before it is replaced.
-        - Similarly, if a validator is provided and a validator already exists, the
-          existing one's `validate` method will be called before it is replaced.
-    """
-
+    __all_instances__: dict[str, "Model"] = {}
     preprocessor: typing.ClassVar[type["Preprocessor"]] = None
     validator: typing.ClassVar[type["Validator"]] = None
     interpreter: "Interpreter" = None
@@ -90,6 +57,12 @@ class Model(Element):
         if validator is not None:
             validator().validate(cls)
 
+    @classmethod
+    def __create__(cls, **kwargs):
+        self = super().__create__(**kwargs)
+        Model.__all_instances__[self.__id__] = self
+        return self
+
 
 def of(element: ElementType) -> typing.Optional[typing.Union[type[Model], Model]]:
     """Returns the model associated with the provided element.
@@ -101,6 +74,15 @@ def of(element: ElementType) -> typing.Optional[typing.Union[type[Model], Model]
         Optional[Type[Model]]: The model associated with the provided element.
     """
     return element.__all_elements__.get(element.__model__, None)
+
+
+def all_instances() -> dict[str, Model]:
+    """Returns a dictionary of all model instances.
+
+    Returns:
+        dict[str, Model]: A dictionary of all model instances.
+    """
+    return Model.__all_instances__
 
 
 def dump(

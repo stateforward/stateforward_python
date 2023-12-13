@@ -78,22 +78,12 @@ class Interpreter(model.Element, typing.Generic[T]):
                 await self.step()
                 await asyncio.sleep(self.clock.multiplier)
         except asyncio.CancelledError:
-            self.log.debug(f"Terminating {model.qualified_name_of(self)}")
-        # if self.running.is_set():
-        #     await self.terminate()
+            self.log.debug(f"Cancelled {model.qualified_name_of(self)}")
+        if self.running.is_set():
+            await self.terminate()
 
     async def step(self) -> None:
         pass
-
-    # async def __aenter__(self):
-    #     print("WE ARE ENTERING")
-    #     return self
-    #
-    # async def __aexit__(self, exc_type, exc_val, exc_tb):
-    #     # await self.terminate()
-    #     print("WE ARE EXITING")
-    #     await asyncio.sleep(0)
-    #     pass
 
     def is_active(self, *elements: model.Element) -> bool:
         return all(element in self.stack for element in elements)
