@@ -122,8 +122,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
             *(self.exec_vertex_exit(vertex, event) for vertex in transition.path.leave)
         )
         if transition.effect is not None:
-            self.exec_behavior(transition.effect, event)
-            await self.pop(transition.effect)
+            await self.exec_behavior(transition.effect, event)
         return await asyncio.gather(
             *(
                 self.exec_vertex_entry(
@@ -277,10 +276,12 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         qualified_name = model.qualified_name_of(state)
         self.log.debug(f"entering state {qualified_name}")
         if state.entry is not None:
-            self.exec_behavior(state.entry, event)
-            await self.pop(state.entry)
+            await self.exec_behavior(state.entry, event)
         if state.do_activity is not None:
-            self.exec_behavior(state.do_activity, event)
+            self.push(
+                state.do_activity,
+                self.loop.create_task(self.exec_behavior(state.do_activity, event)),
+            )
         if state.submachine is not None:
             return
             # await self.enter_state_machine(state.submachine, event, kind)
@@ -375,12 +376,13 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         self.log.debug(
             f"entering {pseudostate.kind.value} psuedostate {model.qualified_name_of(pseudostate)}"
         )
-        self.push(pseudostate)
         if pseudostate.kind == elements.PseudostateKind.initial:
             return await self.exec_transition(pseudostate.outgoing[0], event)
         elif pseudostate.kind == elements.PseudostateKind.choice:
             for transition in pseudostate.outgoing:
-                if await self.exec_constraint_evaluate(transition.guard, event):
+                if transition.guard is None or await self.exec_constraint_evaluate(
+                    transition.guard, event
+                ):
                     return await self.exec_transition(transition, event)
             raise Exception("no valid transition this should never throw")
         elif pseudostate.kind == elements.PseudostateKind.join:

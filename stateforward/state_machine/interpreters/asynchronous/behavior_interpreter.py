@@ -1,6 +1,7 @@
 from stateforward import elements, model
 import typing
 import asyncio
+
 from stateforward.state_machine.log import create_logger, Logger
 from stateforward.state_machine.clocks import Clock
 from stateforward.protocols import Queue
@@ -64,23 +65,15 @@ class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
         for future, results in stack:
             future.set_result(results)
 
-    async def exec_behavior_activity(
-        self, behavior: elements.Behavior, event: elements.Event
-    ):
-        value = behavior.activity(event)
-        if asyncio.isfuture(value) or asyncio.iscoroutine(value):
-            value = await value
-        return value
-
-    def exec_behavior(
+    async def exec_behavior(
         self, behavior: elements.Behavior, event: typing.Optional[elements.Event]
     ):
         behavior_name = model.qualified_name_of(behavior)
         self.log.debug(f"Executing {behavior_name}")
-        task = self.loop.create_task(
-            self.exec_behavior_activity(behavior, event), name=behavior_name
-        )
-        return self.push(behavior, task)
+        value = behavior.activity(event)
+        if asyncio.isfuture(value) or asyncio.iscoroutine(value):
+            value = await value
+        return value
 
     async def exec_event_processing(
         self, event: elements.Event

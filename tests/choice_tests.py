@@ -53,38 +53,31 @@ class TestSM(sf.AsyncStateMachine, TestSMInterface):
 @pytest.mark.asyncio
 async def test_choice_0():
     sm = mock(TestSM(flag=0))
-    print(
-        sm.__id__,
-        sm.choice_1.__id__,
-        sm.choice_1.outgoing[0].__id__,
-        sm.choice_1.outgoing[1].__id__,
-    )
     assert sm.choice_1.outgoing[0].target.__id__ == sm.s2.__id__
-
-    await sm.__interpreter__.start()
+    await sm.interpreter.start()
     await sf.send(ChoiceEvent(), sm)
     expect.only(sm.s2).was_entered()
     assert sm.choice_1.outgoing[0].effect.activity.call_count == 1
-    await sm.__interpreter__.terminate()
+    await sm.interpreter.terminate()
 
 
 @pytest.mark.asyncio
 async def test_choice_1():
     sm = mock(TestSM(flag=1))
-    await sm.__interpreter__.start()
+    await sm.interpreter.start()
     await sf.send(ChoiceEvent(), sm)
     expect.only(sm.s3).was_entered()
     # expect.only(sm.choice_1.outgoing[0].effect).is_started()
 
-    await sm.__interpreter__.terminate()
+    await sm.interpreter.terminate()
 
 
 @pytest.mark.asyncio
 async def test_choice_2():
     sm = mock(TestSM(flag=3))
-    await sm.__interpreter__.start()
+    await sm.interpreter.start()
     await sf.send(ChoiceEvent(), sm)
     expect.only(sm.s2).was_entered()
     # expect.only(sm.choice_1.outgoing[0].effect).is_started()
 
-    await sm.__interpreter__.terminate()
+    await sm.interpreter.terminate()
