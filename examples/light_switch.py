@@ -135,6 +135,7 @@ To learn more about other parts of the `stateforward` framework or to adapt the 
 """
 import stateforward as sf
 import asyncio
+from dataclasses import dataclass
 
 
 class OnEvent(sf.Event):
@@ -150,6 +151,11 @@ class PrintBehavior(sf.Behavior):
         pass
 
 
+@dataclass(unsafe_hash=True)
+class FooEvent(sf.Event):
+    foo: str
+
+
 class LightSwitch(sf.AsyncStateMachine):
     flashing = False
     FlashEvent = sf.when(lambda self, event=None: self.model.flashing)
@@ -162,12 +168,18 @@ class LightSwitch(sf.AsyncStateMachine):
         entry = sf.redefine(PrintBehavior)
         exit = sf.redefine(PrintBehavior)
 
+    class Broken(sf.State):
+        pass
+
     class Flashing(sf.State):
         pass
 
+    async def throw_behavior(self, *args, **kwargs):
+        raise Exception("Behavior exception")
+
     initial = sf.initial(Off)
     transitions = sf.collection(
-        sf.transition(OnEvent, source=Off, target=On),
+        sf.transition(OnEvent, source=Off, target=On, effect=throw_behavior),
         sf.transition(OffEvent, source=On, target=Off),
         sf.transition(FlashEvent, source=Off, target=Flashing),
     )
@@ -182,15 +194,15 @@ if __name__ == "__main__":
     async def light_switch_main():
         import pickle
 
-        light_switch = ThreeWay()
-        print(light_switch.regions)
-        light_switch.interpreter.start()
-        await asyncio.sleep(1)
-        #
-        # await light_switch.interpreter.terminate()
-        # await light_switch.interpreter.start()  # awaiting the event ensures the state machine is idle before we send an event
-        # print(light_switch.state)
-        await sf.send(OnEvent(), light_switch)
+        # instantiate a light switch
+        light_switch = LightSwitch()
+        # start the interpreter and wait for it to be settled
+        await light_switch.interpreter.start()
+        # output the current states of the state machine
+        print(light_switch.state)
+        # dispatch a OnEvent to the state machine
+        task = await sf.send(OnEvent(), light_switch)
+        print("->", task)
         # print(light_switch.state)
         # await sf.dispatch(OffEvent(), light_switch)
         # print(light_switch.state)

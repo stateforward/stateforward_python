@@ -64,7 +64,7 @@ class Interpreter(model.Element, typing.Generic[T]):
         started_task = self.loop.create_task(self.running.wait())
         self.push(self, task)
         return self.loop.create_task(
-            self.wait(started_task, task),
+            asyncio.wait((started_task, task), return_when=asyncio.FIRST_COMPLETED),
             name=f"{qualified_name}.starting",
         )
 

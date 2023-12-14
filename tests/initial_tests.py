@@ -1,6 +1,8 @@
 import pytest
+import unittest
 import stateforward as sf
 from tests.mock import mock, expect
+from unittest.mock import AsyncMock
 
 
 @pytest.mark.asyncio
@@ -61,3 +63,69 @@ async def test_initial_to_nested_state():
     expect.only(sm.s1, sm.s1.s2, sm.s1.s2.s3).was_entered()
     expect.only(sm.initial.transition).was_executed()
     await sm.interpreter.terminate()
+
+
+@pytest.mark.asyncio
+async def test_initial_effect():
+    class SM(sf.AsyncStateMachine):
+        class s1(sf.State):
+            pass
+
+        effect = AsyncMock()
+
+        initial = sf.initial(s1, effect=effect)
+
+    sm = mock(SM())
+    await sm.interpreter.start()
+    expect.only(sm.s1).was_entered()
+    assert sm.effect.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_initial_effect_exception():
+    class SM(sf.AsyncStateMachine):
+        class s1(sf.State):
+            pass
+
+        async def effect(*args, **kwargs):
+            raise Exception("This is an error")
+
+        initial = sf.initial(s1, effect=effect)
+
+    sm = mock(SM())
+    with pytest.raises(Exception) as excinfo:
+        await sm.interpreter.start()
+        assert excinfo.value == "This is an error"
+
+
+@pytest.mark.asyncio
+async def test_initial_explicit_declaration():
+    class SM(sf.AsyncStateMachine):
+        class s1(sf.State):
+            pass
+
+        class initial(sf.Initial):
+            pass
+
+        initial_transition = sf.transition(source=initial, target=s1)
+
+    sm = mock(SM())
+
+    await sm.interpreter.start()
+    expect.only(sm.s1).was_entered()
+
+
+@pytest.mark.asyncio
+async def test_initial_guard_prohibited():
+    with pytest.raises(Exception) as excinfo:
+
+        class SM(sf.AsyncStateMachine):
+            class s1(sf.State):
+                pass
+
+            class initial(sf.Initial):
+                pass
+
+            guard = AsyncMock(return_value=False)
+
+            initial_transition = sf.transition(source=initial, target=s1, guard=guard)

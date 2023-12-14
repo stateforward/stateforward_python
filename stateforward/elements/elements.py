@@ -59,7 +59,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class ConcurrencyKind(Enum):
+class ConcurrencyKind(str, Enum):
     """
     Enumeration for defining the concurrency kind of behaviors in a state machine.
 
@@ -67,9 +67,9 @@ class ConcurrencyKind(Enum):
     in terms of their concurrency. It supports the following options:
 
     Attributes:
-        sequential (str): Indicates that behaviors are executed sequentially. When a behavior
+        threading (str): Indicates that behaviors are executed sequentially. When a behavior
             is triggered by an event, it will run to completion before the next behavior begins.
-        thread (str): Specifies that each behavior runs in its own thread, allowing for
+        threading (str): Specifies that each behavior runs in its own thread, allowing for
             true parallel execution of behaviors.
         multiprocessing (str): Behaviors are executed in a separate process, suitable
             for CPU-bound operations that require full utilization of CPU cores.
@@ -83,8 +83,7 @@ class ConcurrencyKind(Enum):
             pass
     """
 
-    sequential = "sequential"
-    thread = "thread"
+    threading = "threading"
     multiprocessing = "multiprocessing"
     asynchronous = "asynchronous"
 
@@ -659,7 +658,7 @@ class Behavior(model.Model):  # , Generic[T]):
     ClassVar Attributes:
         concurrency_kind (ClassVar[ConcurrencyKind]): Specifies the kind of concurrency used
                                                        by the behavior. Options include
-                                                       sequential, thread, multiprocessing,
+                                                       threading, thread, multiprocessing,
                                                        and asynchronous.
 
     Attributes:
