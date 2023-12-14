@@ -1,5 +1,4 @@
 import typing
-from weakref import WeakValueDictionary
 import types
 
 ElementType = typing.TypeVar(
@@ -173,7 +172,7 @@ def remove_owned_element_from(
         raise ValueError(f"element {element.__name__} is not owned by {owner.__name__}")
     if disassociate:
         for name, element in associations_of(element).items():
-            remove_association_from(element, name)
+            remove_association_from(owner, element)
     owner.__owned_elements__.remove(element_id)
     element.__owner__ = None
     return element
@@ -419,9 +418,6 @@ def specialize(base: ElementType, derived: ElementType, **kwargs):
             ),
         )
         add_owned_element_to(derived, new_owned_element)
-        # for name, value in associations_of(base).items():
-        #     if value == owned_element:
-        #         add_association_to(derived, new_owned_element, name)
 
     if owner_of(base) is None:
         base_elements = (base, *descendants_of(base))
@@ -458,9 +454,6 @@ def redefine(element: ElementType, **kwargs):
     This method takes an element and any additional keyword arguments and creates a new class that is a subclass of the original element. The new class has all the properties and methods
     * of the original element, but with the additional keyword arguments added.
 
-    Example usage:
-        >>> redefine(MyElement, additional_property='value')
-        <class '__main__.MyElement'>  # The redefined element
     """
     return typing.cast(
         ElementType,
@@ -602,6 +595,9 @@ def new(name: str, bases: typing.Collection[type] = None, **kwargs) -> type[T]:
     )
 
 
+P = typing.ParamSpec("P")
+
+
 class Element(typing.Generic[T]):
     """
     :class: Element
@@ -635,7 +631,8 @@ class Element(typing.Generic[T]):
     __owner__: typing.Optional[int] = None
     __type__: typing.ClassVar[type["Element"]] = None
     __model__: typing.Optional[int] = None
-    __init__: typing.Callable[..., None] = object.__init__
+    __init__: typing.Callable[P, None] = lambda *args, **kwargs: None
+    model: typing.Optional["Element"] = None
 
     def __init_subclass__(cls, **kwargs):
         cls.__owned_elements__ = []
@@ -696,28 +693,21 @@ class Element(typing.Generic[T]):
         pass
 
     @classmethod
-    def __create__(cls, **kwargs):
+    def __create__(cls, **kwargs) -> "Element":
         self = super().__new__(cls)
         owner = self.__owner__ = kwargs.pop("owner", None)
         self.__owned_elements__ = []
         self.__id__ = kwargs.pop("id", id(self))
-        self.model = owner.model if owner is not None else self
+        self.model = typing.cast(Element, owner).model if owner is not None else self
         all_elements = self.__all_elements__ = kwargs.pop(
             "all_elements", {id_of(cls): self}
         )  # create a namespace for the elements in the element
-        for owned_element_id in cls.__owned_elements__:
-            owned_element = cls.__all_elements__[owned_element_id]
-            instance = owned_element(
-                owner=self,
-                all_elements=all_elements,
-            )()  # using the extra function call to prevent __init__ from being called
-            all_elements[owned_element_id] = instance
-            self.__owned_elements__.append(owned_element_id)
+        cls.__create_owned_elements__(self, all_elements)
         return self
 
     @staticmethod
     def __new__(
-        cls: type["Element"], *args: typing.Collection[typing.Any], **kwargs
+        cls: type["Element"], *args: typing.Any, **kwargs
     ) -> typing.Union["Element", typing.Callable[[], "Element"]]:
         self = cls.__create__(**kwargs)
         if owner_of(self) is None:
@@ -731,3 +721,14 @@ class Element(typing.Generic[T]):
             return self
         # a hack to prevent __init__ from being called
         return lambda _self=self: _self
+
+    @classmethod
+    def __create_owned_elements__(cls, self, all_elements: dict[int, "Element"]):
+        for owned_element_id in cls.__owned_elements__:
+            owned_element = cls.__all_elements__[owned_element_id]
+            instance = owned_element(
+                owner=self,
+                all_elements=all_elements,
+            )()  # using the extra function call to prevent __init__ from being called
+            all_elements[owned_element_id] = instance
+            self.__owned_elements__.append(owned_element_id)
