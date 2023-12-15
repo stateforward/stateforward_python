@@ -1,9 +1,7 @@
 import typing
 from stateforward.model.element import (
     Element,
-    associations_of,
     add_association_to,
-    # new,
     is_subtype,
     ElementType,
 )
@@ -29,7 +27,7 @@ def collection(*elements: ElementType) -> type["Collection"]:
 
 
 def iter_collection(
-    element: typing.Union[type["Collection[T]"], "Collection[T]"]
+    element: typing.Union[type["Collection[T]"], "Collection[T]"],
 ) -> typing.Generator[T, None, None]:
     for index in range(element.length):
         yield getattr(element, str(index))
