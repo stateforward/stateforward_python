@@ -13,7 +13,7 @@ class e2(sf.Event):
 e3 = sf.event("e3")
 
 
-class Sample(sf.AsyncStateMachine):
+class SampleMachine(sf.AsyncStateMachine):
     class s2(sf.State):
         class r1(sf.Region):
             class s1(sf.State):
@@ -71,7 +71,7 @@ class CompleteSM(sf.AsyncStateMachine):
     #         sf.when(lambda self: self.model.a1), source=r2.s1, target=r2.s2
     #     )
 
-    s2 = sf.submachine_state(Sample, name="s2")
+    s2 = sf.submachine_state(SampleMachine)
 
     initial = sf.initial(s0)
     # s0_fork = sf.fork(sf.transition(target=s1.r1.s1), sf.transition(target=s1.r2.s2))
@@ -89,12 +89,10 @@ if __name__ == "__main__":
     import asyncio
 
     async def main():
-        # sf.dump(CompleteSM)
         sm = CompleteSM()
         # #
-        await sm.__interpreter__.start()
-        # print(sm.state)
+        await sm.interpreter.start()
         await sf.send(e3(), sm)
-        print(sm.state)
+        # print(sm.state)
 
     asyncio.run(main())

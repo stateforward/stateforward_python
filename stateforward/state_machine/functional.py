@@ -1,6 +1,7 @@
 from stateforward import model
 from stateforward.elements import elements
 import typing
+import asyncio
 
 
 def submachine_state(
@@ -27,9 +28,10 @@ def send(
 ) -> typing.Union[typing.Awaitable, list[typing.Awaitable]]:
     if element is None:
         return [
-            model.of(element).interpreter.send(event)
-            for element in model.all_instances().values()
-        ]
+                model.of(element).interpreter.send(event)
+                for element in model.all_instances().values()
+            ]
+
     if isinstance(element, str):
         element = model.all_instances()[element]
     return model.of(element).interpreter.send(event)

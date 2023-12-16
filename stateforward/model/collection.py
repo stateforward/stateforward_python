@@ -15,7 +15,7 @@ def is_collection(value: typing.Any) -> bool:
 
 def collection(*elements: ElementType) -> type["Collection"]:
     new_collection = type(
-        "Collection",
+        "collection",
         (Collection,),
         {
             "length": len(elements),
