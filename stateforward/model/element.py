@@ -428,12 +428,12 @@ def specialize(base: ElementType, derived: ElementType, **kwargs):
         )
 
         for index, element in enumerate(base_elements):
+            new_element = new_elements[index]
             for name, element_id in element.__associations__.items():
-                new_element = new_elements[index]
-                associated_element = new_element.__associations__[name] = element_map[
+                associated_id = new_element.__associations__[name] = element_map[
                     element_id
                 ]
-                setattr(new_element, name, associated_element)
+                setattr(new_element, name, new_element.__all_elements__[associated_id])
     return None
 
 
