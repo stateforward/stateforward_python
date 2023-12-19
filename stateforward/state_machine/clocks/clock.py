@@ -1,11 +1,10 @@
 from stateforward.model import element
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 import typing
-from enum import Enum
 
 
 class Clock(element.Element):
-    multiplier: float = 1.0  # multiplier for the interval in seconds
+    multiplier: float = 0.001  # multiplier for the interval in seconds defaults to 1ms
     start_time: typing.Union[datetime, None] = None
 
     def __init__(
