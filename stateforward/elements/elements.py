@@ -3,7 +3,6 @@ from typing import (
     Callable,
     Union,
     ClassVar,
-    Generic,
     TypeVar,
     ParamSpec,
     Any,
@@ -551,7 +550,11 @@ class CompletionEvent(Event):
                                  is activated when the completion event occurs.
     """
 
+    value: Any = None
     transition: Transition = None
+
+    def __init__(self, value: Any = None):
+        self.value = value
 
 
 class Constraint(model.Element):

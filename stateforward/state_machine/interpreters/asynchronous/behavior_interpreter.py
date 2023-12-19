@@ -5,7 +5,6 @@ import asyncio
 from stateforward.state_machine.log import create_logger, Logger
 from stateforward.state_machine.clocks import Clock
 from stateforward.protocols import Queue
-from functools import partial
 
 
 class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
@@ -23,6 +22,7 @@ class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
         events = []
         deferred = self.deferred
         stack = []
+
         while events := list(
             dict.fromkeys(
                 (

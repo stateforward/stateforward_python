@@ -3,7 +3,6 @@ from stateforward import elements, model
 from stateforward.state_machine.interpreters.asynchronous.behavior_interpreter import (
     AsyncBehaviorInterpreter,
 )
-from functools import partial
 import typing
 
 T = typing.TypeVar("T", bound=elements.StateMachine)
@@ -209,7 +208,8 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
 
     async def exec_completion_event_wait(self, event: elements.CompletionEvent):
         source: elements.State = model.owner_of(event)
-        await self.stack.get(source)
+        future = self.stack.get(source.do_activity)
+        event.value = await future
         activities = tuple(
             self.stack.get(typing.cast(elements.State, state).do_activity)
             for state in self.stack
@@ -217,11 +217,12 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
             and model.element.is_descendant_of(source, state)
         )
         await asyncio.gather(*activities)
-        self.push(event, asyncio.Future())
+        self.push(event)
 
     def exec_completion_event_entry(self, event: elements.CompletionEvent):
         qualified_name = model.qualified_name_of(event)
         self.log.debug(f"entering completion event {qualified_name}")
+        event.value = None
         task = asyncio.create_task(
             self.exec_completion_event_wait(event), name=qualified_name
         )
@@ -264,10 +265,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
 
         self.push(
             transition.events,
-            asyncio.create_task(
-                asyncio.wait_for(asyncio.gather(*tasks), None),
-                name=model.qualified_name_of(transition.events),
-            ),
+            self.wait(*tasks),
         )
 
     async def exec_state_entry(

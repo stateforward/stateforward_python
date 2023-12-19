@@ -6,8 +6,6 @@ from stateforward.protocols.future import Future
 from stateforward.protocols.clock import Clock
 from stateforward.protocols.queue import Queue
 import logging
-import weakref
-from contextlib import asynccontextmanager
 
 
 T = typing.TypeVar("T", bound=model.Model)
@@ -48,8 +46,9 @@ class Interpreter(model.Element, typing.Generic[T]):
         future = self.push(event, asyncio.Future())
         # add the event to the queue
         self.queue.put_nowait(event)
-        return self.loop.create_task(
-            self.wait(future, self.stack.get(self)),
+        return self.wait(
+            future,
+            self.stack.get(self),
             name=f"{model.qualified_name_of(event)}.sent",
         )
 
@@ -63,17 +62,27 @@ class Interpreter(model.Element, typing.Generic[T]):
         task = loop.create_task(self.run(), name=qualified_name)
         started_task = self.loop.create_task(self.running.wait())
         self.push(self, task)
+        return self.wait(task, started_task)
+
+    def wait(
+        self,
+        *tasks: typing.Union[asyncio.Task, asyncio.Future],
+        name: str = None,
+        return_when: str = asyncio.FIRST_COMPLETED,
+    ) -> asyncio.Task:
+        async def wait_for_tasks(_tasks=tasks, _return_when=return_when):
+            done, pending = await asyncio.wait(_tasks, return_when=_return_when)
+            return await done.pop()
+
         return self.loop.create_task(
-            self.wait(started_task, task),
-            name=f"{qualified_name}.starting",
+            wait_for_tasks(),
+            name=name or "_and_".join(task.get_name() for task in tasks),
         )
 
-    async def wait(self, *tasks: asyncio.Task):
-        done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-        return await done.pop()
-
     async def run(self) -> None:
-        self.log.debug(f"Running {model.qualified_name_of(self)}")
+        self.log.debug(
+            f"Running {model.qualified_name_of(self)} clock multiplier {self.clock.multiplier}"
+        )
         self.running.set()
         try:
             while self.running.is_set():
