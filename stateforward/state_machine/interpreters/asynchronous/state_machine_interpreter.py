@@ -262,11 +262,11 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
             task = self.exec_event_entry(event)
             if task is not None:
                 tasks.append(task)
-
-        self.push(
-            transition.events,
-            self.wait(*tasks),
-        )
+        if tasks:
+            self.push(
+                transition.events,
+                self.wait(*tasks),
+            )
 
     async def exec_state_entry(
         self, state: elements.State, event: elements.Event, kind: elements.EntryKind
