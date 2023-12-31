@@ -556,10 +556,10 @@ from .element import (
     owned_elements_of,
     remove_owned_elements_from,
     remove_owned_element_from,
-    attributes_of,
     associations_of,
     add_owned_element_to,
     descendants_of,
+    attributes_of,
     ancestors_of,
     find_ancestor_of,
     find_owned_element_of,
@@ -572,12 +572,10 @@ from .element import (
     is_descendant_of,
     ElementType,
     set_attribute,
-    new,
 )
 from .collection import Collection, collection, sort_collection, extend_collection
-from .model import Model, dump, of, all_instances
+from .model import Model, dump, of
 from .preprocessor import Preprocessor
-from .interpreter import Interpreter, InterpreterStep
 from .validator import Validator
 from .association import is_association, Association, association
 from .visitor import Visitor
@@ -606,6 +604,7 @@ __all__ = (
     "associations_of",
     "is_descendant_of",
     "ElementType",
+    "attributes_of",
     "Collection",
     "collection",
     "sort_collection",
@@ -614,8 +613,6 @@ __all__ = (
     "dump",
     "of",
     "Preprocessor",
-    "Interpreter",
-    "InterpreterStep",
     "Validator",
     "is_association",
     "Association",

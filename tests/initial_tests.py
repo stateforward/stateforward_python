@@ -1,5 +1,4 @@
 import pytest
-import unittest
 import stateforward as sf
 from tests.mock import mock, expect
 from unittest.mock import AsyncMock
@@ -56,12 +55,39 @@ async def test_initial_to_nested_state():
                 class s3(sf.State):
                     pass
 
+        class s4(sf.State):
+            pass
+
         initial = sf.initial(s1.s2.s3)
 
     sm = mock(SM())
     await sm.interpreter.start()
     expect.only(sm.s1, sm.s1.s2, sm.s1.s2.s3).was_entered()
     expect.only(sm.initial.transition).was_executed()
+    await sm.interpreter.terminate()
+
+
+#
+@pytest.mark.asyncio
+async def test_initial_to_nested_state_with_completion_transition():
+    class SM(sf.AsyncStateMachine):
+        class s1(sf.State):
+            class s2(sf.State):
+                class s3(sf.State):
+                    pass
+
+        class s4(sf.State):
+            pass
+
+        initial = sf.initial(s1.s2.s3)
+        transitions = sf.collection(sf.transition(source=s1.s2.s3, target=s4))
+
+    sm = mock(SM())
+    await sm.interpreter.start()
+    print(sm.s1.entry.activity.call_count)
+    assert sm.s1.entry.activity.call_count == 1, "s1 entry should be called once"
+    expect.only(sm.s1, sm.s1.s2, sm.s1.s2.s3, sm.s4).was_entered()
+    expect.all(sm.initial.transition, sm.transitions[0]).was_executed()
     await sm.interpreter.terminate()
 
 

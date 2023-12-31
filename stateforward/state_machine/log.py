@@ -1,6 +1,6 @@
 import logging
 import typing
-from logging import Logger
+from weakref import WeakValueDictionary
 
 
 class ColorLevelFormatter(logging.Formatter):
@@ -27,11 +27,16 @@ ColorLevelFormatter.formatters = {
     logging.CRITICAL: ColorLevelFormatter(91),
 }
 
+LOGGERS = WeakValueDictionary()
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(ColorLevelFormatter())
+
 
 def create_logger(name: str):
-    logger = logging.getLogger(name)
+    if name in LOGGERS:
+        return LOGGERS[name]
+    logger = LOGGERS[name] = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(ColorLevelFormatter())
     logger.addHandler(stream_handler)
     return logger

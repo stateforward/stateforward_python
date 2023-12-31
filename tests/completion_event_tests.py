@@ -32,6 +32,7 @@ class SM(sf.AsyncStateMachine):
 @pytest.mark.asyncio
 async def test_completions():
     sm = mock(SM())
+    print(sm.interpreter)
     await sm.interpreter.start()
     expect.only(sm.s1).was_entered()
     sm.reset_mocked()
