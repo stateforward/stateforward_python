@@ -11,7 +11,7 @@ from stateforward.model.element import (
 
 if typing.TYPE_CHECKING:
     from stateforward.model.preprocessor import Preprocessor
-    from stateforward.model.interpreter import Interpreter
+    from stateforward.protocols.interpreter import Interpreter
     from stateforward.model.validator import Validator
 
 __all__ = (

@@ -1,6 +1,7 @@
 import asyncio
 from stateforward import elements, model
-from stateforward.state_machine.interpreters.asynchronous.behavior_interpreter import (
+from stateforward.protocols.interpreter import InterpreterStep
+from stateforward.state_machine.interpreters.asynchronous.async_behavior_interpreter import (
     AsyncBehaviorInterpreter,
 )
 import typing
@@ -18,12 +19,12 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
                 for region in self.model.regions
             )
         )
-        if model.InterpreterStep.complete in results:
-            return model.InterpreterStep.complete
+        if InterpreterStep.complete in results:
+            return InterpreterStep.complete
         return (
-            model.InterpreterStep.deferred
-            if model.InterpreterStep.deferred in results
-            else model.InterpreterStep.incomplete
+            InterpreterStep.deferred
+            if InterpreterStep.deferred in results
+            else InterpreterStep.incomplete
         )
 
     async def exec_region_processing(
@@ -31,12 +32,12 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
     ):
         # self.log.debug(f"processing region {model.qualified_name_of(region)}")
         if not self.is_active(region):
-            return model.InterpreterStep.incomplete
+            return InterpreterStep.incomplete
         active_state = next(
             (state for state in region.subvertex if self.is_active(state)), None
         )
         if active_state is None:
-            return model.InterpreterStep.incomplete
+            return InterpreterStep.incomplete
         return await self.exec_state_processing(active_state, event)
 
     async def exec_state_processing(
@@ -44,7 +45,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
     ):
         # self.log.debug(f"processing state {model.qualified_name_of(state)}")
         if not self.is_active(state):
-            return model.InterpreterStep.incomplete
+            return InterpreterStep.incomplete
         elif state.regions is not None:
             result = next(
                 (
@@ -57,13 +58,13 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
                             )
                         )
                     )
-                    if result is not model.InterpreterStep.incomplete
+                    if result is not InterpreterStep.incomplete
                 ),
-                model.InterpreterStep.incomplete,
+                InterpreterStep.incomplete,
             )
         else:
-            result = model.InterpreterStep.incomplete
-        if result is model.InterpreterStep.incomplete:
+            result = InterpreterStep.incomplete
+        if result is InterpreterStep.incomplete:
             result = await self.exec_vertex_processing(state, event)
         return result
 
@@ -73,10 +74,10 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         for transition in vertex.outgoing:
             if (
                 await self.exec_transition_processing(transition, event)
-                == model.InterpreterStep.complete
+                == InterpreterStep.complete
             ):
-                return model.InterpreterStep.complete
-        return model.InterpreterStep.incomplete
+                return InterpreterStep.complete
+        return InterpreterStep.incomplete
 
     async def exec_transition_processing(
         self, transition: elements.Transition, event: elements.Event
@@ -89,8 +90,8 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
             or await self.exec_constraint_evaluate(transition.guard, event)
         ):
             await self.exec_transition(transition, event)
-            return model.InterpreterStep.complete
-        return model.InterpreterStep.incomplete
+            return InterpreterStep.complete
+        return InterpreterStep.incomplete
 
         # could possibly improve this with using state in reverse
 
@@ -117,23 +118,18 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         self, transition: elements.Transition, event: elements.Event = None
     ):
         self.log.debug(f"executing transition {model.qualified_name_of(transition)}")
-        await asyncio.gather(
-            *(self.exec_vertex_exit(vertex, event) for vertex in transition.path.leave)
-        )
+        for vertex in transition.path.leave:
+            await self.exec_vertex_exit(vertex, event)
         if transition.effect is not None:
             await self.exec_behavior(transition.effect, event)
-        return await asyncio.gather(
-            *(
-                self.exec_vertex_entry(
-                    vertex,
-                    event,
-                    elements.EntryKind.default
-                    if index == transition.path.enter.length - 1
-                    else elements.EntryKind.explicit,
-                )
-                for index, vertex in enumerate(transition.path.enter)
+        for index, vertex in enumerate(transition.path.enter):
+            await self.exec_vertex_entry(
+                vertex,
+                event,
+                elements.EntryKind.default
+                if index == transition.path.enter.length - 1
+                else elements.EntryKind.explicit,
             )
-        )
 
     async def exec_vertex_exit(self, vertex: elements.Vertex, event: elements.Event):
         if isinstance(vertex, elements.State):
@@ -158,7 +154,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
     async def exec_vertex_entry(
         self, vertex: elements.Vertex, event: elements.Event, kind: elements.EntryKind
     ):
-        self.log.debug(f"entering vertex {model.qualified_name_of(vertex)}")
+        # self.log.debug(f"entering vertex {model.qualified_name_of(vertex)}")
         self.push(vertex)
         if isinstance(vertex, elements.State):
             await self.exec_state_entry(vertex, event, kind)
@@ -339,7 +335,6 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
 
     async def exec_state_exit(self, state: elements.State, event: elements.Event):
         qualified_name = model.qualified_name_of(state)
-        self.log.debug(f'leaving state "{qualified_name}"')
         if state.submachine is not None:
             await self.exec_state_machine_exit(state.submachine, event)
         else:
@@ -355,6 +350,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
                 do_activity.cancel()
         if state.exit is not None:
             await self.exec_behavior(state.exit, event)
+        self.log.debug(f'leaving state "{qualified_name}"')
 
     async def exec_state_machine_exit(
         self,
@@ -402,6 +398,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         await self.exec_state_machine_entry(
             self.model, None, elements.EntryKind.default
         )
+        await self.step()
         return await super().run()
 
     async def terminate(self):

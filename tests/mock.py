@@ -84,7 +84,7 @@ class Mocked(Generic[T]):
         value = super().__getattribute__("__element__").__getattribute__(item)
         return (
             mocked(value, self.__mocked__)
-            if isinstance(value, sf.Element) and not isinstance(value, sf.Interpreter)
+            if isinstance(value, sf.Element) and item != "interpreter"
             else value
         )
 
@@ -125,6 +125,9 @@ class MockedBehavior(Mocked, element=sf.Behavior):
 
 class MockedState(Mocked, element=sf.State):
     def was_entered(self) -> bool:
+        return self.entry.is_done() and self.do_activity.is_started()
+
+    def is_entered(self) -> bool:
         return (
             self.is_active() and self.entry.is_done() and self.do_activity.is_started()
         )

@@ -2,12 +2,17 @@ from stateforward import elements, model
 import typing
 import asyncio
 
-from stateforward.state_machine.log import create_logger, Logger
+from stateforward.state_machine.log import create_logger
+from stateforward.protocols.logger import Logger
+from stateforward.protocols.interpreter import InterpreterStep
 from stateforward.state_machine.clocks import Clock
 from stateforward.protocols import Queue
+from stateforward.state_machine.interpreters.asynchronous.async_interpreter import (
+    AsyncInterpreter,
+)
 
 
-class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
+class AsyncBehaviorInterpreter(AsyncInterpreter, clock=Clock):
     deferred: list[elements.Event] = None
 
     def __init__(self, queue: Queue = None, log: Logger = None):
@@ -50,12 +55,12 @@ class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
                         f"Processed {model.qualified_name_of(event)} results {results} and {processed}"
                     )
                     # add the event to the list of processed events
-                    if results is model.InterpreterStep.deferred:
+                    if results is InterpreterStep.deferred:
                         deferred.append(event)
                     else:
                         if model.owner_of(event) is None:
                             stack.append((self.pop(event), results))
-                        if results is model.InterpreterStep.complete:
+                        if results is InterpreterStep.complete:
                             processed = []
                             break
                     processed.append(event)
@@ -75,7 +80,5 @@ class AsyncBehaviorInterpreter(model.Interpreter, clock=Clock):
             value = await value
         return value
 
-    async def exec_event_processing(
-        self, event: elements.Event
-    ) -> model.InterpreterStep:
+    async def exec_event_processing(self, event: elements.Event) -> InterpreterStep:
         pass

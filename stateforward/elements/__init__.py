@@ -26,7 +26,7 @@ Enumerates different kinds of transitions, such as internal, local, external, an
 Represents the sequence of vertices one must enter (`enter`) and leave (`leave`) when performing a transition.
 
 ### ConcurrencyKind (Enum)
-Enumerates the different concurrency models that can be used, such as threading, threaded, multiprocessing, and asynchronous.
+Enumerates the different concurrency models that can be used, such as threaded, threaded, multiprocessing, and asynchronous.
 
 ### Event
 A base class for different types of events that can trigger transitions.

@@ -1,11 +1,10 @@
 import asyncio
 from inspect import iscoroutinefunction
-from weakref import proxy
 from asyncio import Queue as AsyncQueue
-from typing import TYPE_CHECKING
 from stateforward import model
 from stateforward import elements
-from stateforward.state_machine.log import create_logger, Logger
+from stateforward.state_machine.log import create_logger
+from stateforward.protocols.logger import Logger
 
 
 async def no_async_activity(self, event: "elements.Event"):
@@ -161,7 +160,7 @@ class StateMachinePreprocessor(model.Preprocessor):
                 if model.id_of(ancestor) == model.id_of(transition.container):
                     break
                 if model.element.is_subtype(ancestor, elements.State):
-                    enter.append(ancestor)
+                    enter.insert(0, ancestor)
             enter.append(transition.target)
         elif transition.kind == elements.TransitionKind.local:
             for ancestor in model.ancestors_of(transition.target):
@@ -202,7 +201,7 @@ class StateMachinePreprocessor(model.Preprocessor):
                 completion = element.source.completion
                 if completion is None:
                     completion = model.element.new(
-                        f"completion",
+                        "completion",
                         (elements.CompletionEvent,),
                     )
                     model.set_attribute(element.source, "completion", completion)
@@ -350,10 +349,6 @@ class StateMachinePreprocessor(model.Preprocessor):
         )
 
     def preprocess_state_machine(self, element: type["elements.Behavior"]):
-        from stateforward.state_machine.interpreters.asynchronous import (
-            AsyncStateMachineInterpreter,
-        )
-
         self.log.debug(
             f"preprocessing state machine {model.qualified_name_of(element)}"
         )

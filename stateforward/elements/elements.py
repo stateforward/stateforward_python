@@ -68,7 +68,7 @@ class ConcurrencyKind(str, Enum):
     Attributes:
         threading (str): Indicates that behaviors are executed sequentially. When a behavior
             is triggered by an event, it will run to completion before the next behavior begins.
-        threading (str): Specifies that each behavior runs in its own thread, allowing for
+        threading (str): Specifies that each behavior runs in its own threaded, allowing for
             true parallel execution of behaviors.
         multiprocessing (str): Behaviors are executed in a separate process, suitable
             for CPU-bound operations that require full utilization of CPU cores.
@@ -82,7 +82,7 @@ class ConcurrencyKind(str, Enum):
             pass
     """
 
-    threading = "threading"
+    threading = "threaded"
     multiprocessing = "multiprocessing"
     asynchronous = "asynchronous"
 
@@ -661,7 +661,7 @@ class Behavior(model.Model):  # , Generic[T]):
     ClassVar Attributes:
         concurrency_kind (ClassVar[ConcurrencyKind]): Specifies the kind of concurrency used
                                                        by the behavior. Options include
-                                                       threading, thread, multiprocessing,
+                                                       threaded, threaded, multiprocessing,
                                                        and asynchronous.
 
     Attributes:
