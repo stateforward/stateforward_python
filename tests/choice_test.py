@@ -55,6 +55,7 @@ async def test_choice_0():
     sm = mock(TestSM(flag=0))
     assert sm.choice_1.outgoing[0].target.__id__ == sm.s2.__id__
     await sm.interpreter.start()
+    sm.reset_mocked()
     await sf.send(ChoiceEvent(), sm)
     expect.only(sm.s2).was_entered()
     assert sm.choice_1.outgoing[0].effect.activity.call_count == 1
@@ -65,6 +66,7 @@ async def test_choice_0():
 async def test_choice_1():
     sm = mock(TestSM(flag=1))
     await sm.interpreter.start()
+    sm.reset_mocked()
     await sf.send(ChoiceEvent(), sm)
     expect.only(sm.s3).was_entered()
     # expect.only(sm.choice_1.outgoing[0].effect).is_started()
@@ -76,6 +78,7 @@ async def test_choice_1():
 async def test_choice_2():
     sm = mock(TestSM(flag=3))
     await sm.interpreter.start()
+    sm.reset_mocked()
     await sf.send(ChoiceEvent(), sm)
     expect.only(sm.s2).was_entered()
     # expect.only(sm.choice_1.outgoing[0].effect).is_started()
