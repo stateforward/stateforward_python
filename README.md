@@ -174,7 +174,7 @@ async def main():
     # instantiate a light switch
     light_switch = LightSwitch()
     # start the interpreter and wait for it to be settled
-    await light_switch.__interpreter__.start()
+    await light_switch.interpreter.start()
     # output the current states of the state machine
     print(light_switch.state)
     # dispatch a OnEvent to the state machine

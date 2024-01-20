@@ -41,5 +41,6 @@ async def test_state_do_activity_with_exception():
         initial = sf.initial(s1)
 
     sm = SM()
+    await sm.interpreter.start()
     with pytest.raises(Exception):
-        await sm.interpreter.start()
+        await sm.interpreter.terminate()
