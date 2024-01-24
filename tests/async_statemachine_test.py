@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 class TestSM(sf.AsyncStateMachine):
     class s1(sf.State):
         entry = sf.behavior(AsyncMock())
-        do_activity = sf.behavior(AsyncMock())
+        activity = sf.behavior(AsyncMock())
         exit = sf.behavior(AsyncMock())
 
     initial = sf.initial(s1)
@@ -33,10 +33,10 @@ async def test_state_entry_with_exception():
 
 
 @pytest.mark.asyncio
-async def test_state_do_activity_with_exception():
+async def test_state_activity_with_exception():
     class SM(sf.AsyncStateMachine):
         class s1(sf.State):
-            do_activity = sf.behavior(AsyncMock(side_effect=Exception))
+            activity = sf.behavior(AsyncMock(side_effect=Exception))
 
         initial = sf.initial(s1)
 

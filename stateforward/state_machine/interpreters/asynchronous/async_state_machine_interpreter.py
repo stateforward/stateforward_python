@@ -154,7 +154,6 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
     async def exec_vertex_entry(
         self, vertex: elements.Vertex, event: elements.Event, kind: elements.EntryKind
     ):
-        # self.log.debug(f"entering vertex {model.qualified_name_of(vertex)}")
         self.push(vertex)
         if isinstance(vertex, elements.State):
             await self.exec_state_entry(vertex, event, kind)
@@ -176,7 +175,7 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
     async def exec_final_state_entry(
         self, final_state: elements.FinalState, event: elements.Event
     ):
-        await self.terminate()
+        raise NotImplementedError()
 
     async def exec_event_exit(self, event: elements.Event):
         self.pop(event)
@@ -204,10 +203,10 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
 
     async def exec_completion_event_wait(self, event: elements.CompletionEvent):
         source: elements.State = model.owner_of(event)
-        future = self.stack.get(source.do_activity)
+        future = self.stack.get(source.activity)
         event.value = await future
         activities = tuple(
-            self.stack.get(typing.cast(elements.State, state).do_activity)
+            self.stack.get(typing.cast(elements.State, state).activity)
             for state in self.stack
             if model.element.is_subtype(state, elements.State)
             and model.element.is_descendant_of(source, state)
@@ -224,16 +223,6 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         )
         return task
 
-    async def exec_call_event_wait(self, event: elements.CallEvent):
-        await event.results
-        self.push(event)
-
-    def exec_call_event_entry(self, event: elements.CallEvent):
-        qualified_name = model.qualified_name_of(event)
-        return asyncio.create_task(
-            self.exec_call_event_wait(event), name=qualified_name
-        )
-
     def exec_event_entry(self, event: elements.Event):
         qualified_name = model.qualified_name_of(event)
         self.log.debug(f"entering event {qualified_name}")
@@ -242,9 +231,6 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
 
         elif isinstance(event, elements.CompletionEvent):
             return self.exec_completion_event_entry(event)
-
-        # elif isinstance(event, elements.CallEvent):
-        #     return self.exec_call_event_entry(event)
 
         elif isinstance(event, elements.ChangeEvent):
             return self.exec_change_event_entry(event)
@@ -271,15 +257,13 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
         self.log.debug(f"entering state {qualified_name}")
         if state.entry is not None:
             await self.exec_behavior(state.entry, event)
-        if state.do_activity is not None:
+        if state.activity is not None:
             self.push(
-                state.do_activity,
-                self.loop.create_task(self.exec_behavior(state.do_activity, event)),
+                state.activity,
+                self.loop.create_task(self.exec_behavior(state.activity, event)),
             )
         if state.submachine is not None:
             return
-            # await self.enter_state_machine(state.submachine, event, kind)
-        # else:
         await asyncio.gather(
             *(
                 self.exec_region_entry(region, event, kind)
@@ -344,10 +328,10 @@ class AsyncStateMachineInterpreter(AsyncBehaviorInterpreter[T]):
                     for region in state.regions or []
                 )
             )
-        if state.do_activity is not None:
-            do_activity = self.pop(state.do_activity)
-            if not do_activity.done():
-                do_activity.cancel()
+        if state.activity is not None:
+            activity = self.pop(state.activity)
+            if not activity.done():
+                activity.cancel()
         if state.exit is not None:
             await self.exec_behavior(state.exit, event)
         self.log.debug(f'leaving state "{qualified_name}"')

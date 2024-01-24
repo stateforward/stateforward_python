@@ -53,7 +53,7 @@ Defines a conditional expression or constraint that can influence the behavior o
 A base class for complex states that may contain other states (regions).
 
 ### State
-A simple or composite state within the state machine that can perform `entry`, `exit`, and `do_activity` behaviors. It may also contain `completion`, `deferred` events, and a reference to a `submachine`.
+A simple or composite state within the state machine that can perform `entry`, `exit`, and `activity` behaviors. It may also contain `completion`, `deferred` events, and a reference to a `submachine`.
 
 ### Region
 Represents a 'container' for states inside composite states or state machines. Maintains a `subvertex` collection for the vertices it encloses and references its `initial` state.

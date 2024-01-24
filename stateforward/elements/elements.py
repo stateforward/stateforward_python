@@ -600,14 +600,14 @@ class State(Vertex, CompositeState):
     """
     State is a Vertex that is also a CompositeState.
 
-    It can define behaviors for entry and exit, as well as an ongoing do_activity behavior. The State can also
+    It can define behaviors for entry and exit, as well as an ongoing activity behavior. The State can also
     have a completion event, which indicates that the internal behavior and activities are complete, and potentially
     deferred events. States can also act as submachine states containing an entire StateMachine.
 
     Attributes:
         entry (Behavior): The behavior that is executed when entering the state.
         exit (Behavior): The behavior that is executed when exiting the state.
-        do_activity (Behavior): The behavior that is executed while the state machine is in this state.
+        activity (Behavior): The behavior that is executed while the state machine is in this state.
         completion (CompletionEvent): An event that is triggered when the state has completed its activity.
         deferred (Collection[Event]): Events that are not handled in the state but are deferred to the state machine
                                       for handling at a later time.
@@ -617,7 +617,7 @@ class State(Vertex, CompositeState):
 
     entry: "Behavior" = None
     exit: "Behavior" = None
-    do_activity: "Behavior" = None
+    activity: "Behavior" = None
     completion: CompletionEvent = None
     deferred: model.Collection[Event] = None
     submachine: "StateMachine" = None
