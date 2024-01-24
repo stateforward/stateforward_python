@@ -94,7 +94,9 @@ class AsyncInterpreter(model.Element, typing.Generic[T]):
             await self.terminate()
 
     async def step(self) -> None:
-        pass
+        for future in self.stack.values():
+            if exception := future.exception() is not None:
+                raise exception
 
     def is_active(self, *elements: model.Element) -> bool:
         return all(element in self.stack for element in elements)
@@ -110,9 +112,12 @@ class AsyncInterpreter(model.Element, typing.Generic[T]):
         return typing.cast(Future, future)
 
     def pop(self, element: model.Element, *, result: typing.Any = NULL):
-        future = self.stack.pop(element, Null())
-        if result is not NULL and not future.done():
-            future.set_result(result)
+        future = self.stack.pop(element, NULL)
+        if future.done():
+            if future.exception() is not None:
+                raise future.result()
+            elif result is not NULL:
+                future.set_result(result)
         return typing.cast(Future, future)
 
     def terminate(self):

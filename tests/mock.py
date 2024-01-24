@@ -125,11 +125,11 @@ class MockedBehavior(Mocked, element=sf.Behavior):
 
 class MockedState(Mocked, element=sf.State):
     def was_entered(self) -> bool:
-        return self.entry.is_done() and self.do_activity.is_started()
+        return self.entry.is_done() and self.activity.is_started()
 
     def is_entered(self) -> bool:
         return (
-            self.is_active() and self.entry.is_done() and self.do_activity.is_started()
+            self.is_active() and self.entry.is_done() and self.activity.is_started()
         )
 
     def is_entered(self) -> bool:
@@ -138,13 +138,13 @@ class MockedState(Mocked, element=sf.State):
     def was_not_entered(self) -> bool:
         if not self.entry.is_inactive():
             return False
-        elif not self.do_activity.is_inactive():
+        elif not self.activity.is_inactive():
             return False
         return self.is_inactive()
 
     def was_not_exited(self) -> bool:
         return (
-            self.do_activity.is_started()
+            self.activity.is_started()
             and self.exit.is_inactive()
             and self.is_active()
         ) and self

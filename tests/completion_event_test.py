@@ -7,19 +7,19 @@ from tests.mock import mock, expect
 class SM(sf.AsyncStateMachine):
     class s1(sf.State):
         @sf.decorators.behavior
-        async def do_activity(self, event=None):
+        async def activity(self, event=None):
             await asyncio.sleep(1)
             return "s1"
 
     class s2(sf.State):
         @sf.decorators.behavior
-        async def do_activity(self, event=None):
+        async def activity(self, event=None):
             await asyncio.sleep(1)
             return "s2"
 
     class s3(sf.State):
         @sf.decorators.behavior
-        async def do_activity(self, event=None):
+        async def activity(self, event=None):
             await asyncio.sleep(1)
 
     initial = sf.initial(s1)

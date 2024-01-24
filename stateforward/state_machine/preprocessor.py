@@ -85,7 +85,7 @@ class StateMachinePreprocessor(model.Preprocessor):
 
         self.preprocess_vertex(element)
 
-        for behavior in ("entry", "exit", "do_activity"):
+        for behavior in ("entry", "exit", "activity"):
             if getattr(element, behavior) is None:
                 model.set_attribute(
                     element,

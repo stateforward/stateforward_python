@@ -210,7 +210,7 @@ def simple_state(
     exit: Union[
         type[elements.Behavior], Callable[[elements.Behavior, elements.Event], None]
     ] = None,
-    do_activity: Union[
+    activity: Union[
         type[elements.Behavior], Callable[[elements.Behavior, elements.Event], None]
     ] = None,
 ):
@@ -218,14 +218,14 @@ def simple_state(
         entry = behavior(entry)
     if not model.element.is_subtype(exit, elements.Behavior):
         exit = behavior(exit)
-    if not model.element.is_subtype(do_activity, elements.Behavior):
-        do_activity = behavior(do_activity)
+    if not model.element.is_subtype(activity, elements.Behavior):
+        activity = behavior(activity)
     return model.element.new(
         name,
         (elements.State,),
         entry=entry,
         exit=exit,
-        do_activity=do_activity,
+        activity=activity,
     )
 
 

@@ -14,10 +14,6 @@ class e2(sf.Event):
 
 class SM(sf.AsyncStateMachine):
     class s1(sf.State):
-        # @sf.decorators.behavior
-        # async def do_activity(self, event=None):
-        #     return "s1"
-
         class s1_1(sf.State):
             pass
 
@@ -29,13 +25,13 @@ class SM(sf.AsyncStateMachine):
 
     class s2(sf.State):
         @sf.decorators.behavior
-        async def do_activity(self, event=None):
+        async def activity(self, event=None):
             await asyncio.sleep(1)
             return "s2"
 
     class s3(sf.State):
         @sf.decorators.behavior
-        async def do_activity(self, event=None):
+        async def activity(self, event=None):
             await asyncio.sleep(1)
 
     initial = sf.initial(s1.s1_1)
@@ -50,7 +46,7 @@ class SM(sf.AsyncStateMachine):
 async def test_local_transition():
     sm = mock(SM())
     await sm.interpreter.start()
-    expect.only(sm.s1, sm.s1.s1_1).was_entered()
+    expect.only(sm.s1, sm.s1.s1_1, sm.s1.s1_2).was_entered()
     # sm.reset_mocked()
     # await sm.dispatch(e1())
     # expect.only(sm.s1.s1_1).was_entered()
