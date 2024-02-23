@@ -114,6 +114,10 @@ class FlashingEvent(sf.Event):
     pass
 
 
+class WalkEvent(sf.Event):
+    pass
+
+
 class Signal(sf.AsyncStateMachine):
     flashing: bool = False
 
@@ -126,23 +130,37 @@ class Signal(sf.AsyncStateMachine):
     initial = sf.initial(On)
     transitions = sf.collection(
         sf.transition(
-            sf.after(seconds=1),
+            sf.after(seconds=0.5),
             source=On,
             target=Off,
             guard=lambda self, event: self.context.flashing,
         ),
         sf.transition(
-            sf.after(seconds=1),
+            sf.after(seconds=0.5),
             source=Off,
             target=On,
             guard=lambda self, event: self.context.flashing,
         ),
-        *sf.transition(FlashingEvent, source=(On, Off)),
+        *sf.transition(
+            FlashingEvent,
+            source=(On, Off),
+            effect=lambda self, event: setattr(self.context, "flashing", True),
+        ),
     )
 
 
 def walk_guard(self, event):
-    return self.model.On.red in self.model.__interpreter__.stack
+    return self.model.On.red in self.model.interpreter.stack
+
+
+def send_flashing_event(self, event):
+    print("Sending flashing event")
+    sf.send(FlashingEvent(), self.model)
+
+
+def send_walk_event(self, event):
+    print("Sending walk event")
+    sf.send(WalkEvent(), self.model)
 
 
 class TrafficLight(sf.AsyncStateMachine):
@@ -168,11 +186,20 @@ class TrafficLight(sf.AsyncStateMachine):
                 signal = sf.submachine_state(Signal)
 
             initial = sf.initial(target=DontWalk)
-            transitions = sf.transition(source=DontWalk, target=Walk, guard=walk_guard)
+            transitions = sf.collection(
+                sf.transition(
+                    WalkEvent, source=DontWalk, target=Walk, guard=walk_guard
+                ),
+                sf.transition(
+                    sf.after(seconds=3),
+                    source=Walk,
+                    effect=send_flashing_event,
+                ),
+            )
 
-        red = sf.submachine_state(Signal)
-        yellow = sf.submachine_state(Signal)
-        green = sf.submachine_state(Signal)
+        red = sf.submachine_state(Signal, name="red", entry=send_walk_event)
+        yellow = sf.submachine_state(Signal, name="yellow")
+        green = sf.submachine_state(Signal, name="green")
 
         initial = sf.initial(target=green)
 
@@ -190,18 +217,18 @@ WALK = "🚶"
 
 
 def display(tl: "TrafficLight"):
-    print(tl.state)
-    if tl.__interpreter__.is_active(tl.On.red.submachine.On):
+    print(tl.state, tl.On.Pedestrian.DontWalk.signal.flashing)
+    if tl.interpreter.is_active(tl.On.red):
         color = "🔴"
-    elif tl.__interpreter__.is_active(tl.On.yellow.submachine.On):
+    elif tl.interpreter.is_active(tl.On.yellow):
         color = "🟡"
-    elif tl.__interpreter__.is_active(tl.On.green.submachine.On):
+    elif tl.interpreter.is_active(tl.On.green):
         color = "🟢"
     else:
         color = "⚫️"
-    if tl.__interpreter__.is_active(tl.On.Pedestrian.Walk):
+    if tl.interpreter.is_active(tl.On.Pedestrian.Walk):
         pedestrian = WALK
-    elif tl.__interpreter__.is_active(tl.On.Pedestrian.DontWalk):
+    elif tl.interpreter.is_active(tl.On.Pedestrian.DontWalk):
         pedestrian = DONT_WALK
     else:
         pedestrian = None

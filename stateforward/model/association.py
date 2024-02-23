@@ -1,3 +1,13 @@
+"""
+
+The `association` module defines utilities and types for managing associations through proxy mechanisms. The module's central feature is the `Association` type, which is a union of Annotated types using NewType to represent either a `CallableProxyType` or a `ProxyType`. 
+
+This module also provides the function `is_association`, which checks if a given value is an instance of either `ProxyType` or `CallableProxyType`, and hence can be considered an association according to the module's definition.
+
+The `association` function within the module is responsible for creating an association to the passed element. If the given element is not already an association, it will be wrapped in a proxy using the `proxy` function from the `weakref` module. If it is an association, it is returned unchanged. This enables users to maintain and handle associations to objects that should not be strongly referenced while still allowing for the invocation of callable methods if available.
+
+The module also includes a `__get__` method, typically used for extending descriptor classes. This method aids in retrieving the association for a given instance, falling back to the class method's behavior if the instance is `None`. The use of this method is internally focused and supports the machinery of the association types.
+"""
 from typing import Annotated, Union, NewType, TypeVar, Any
 from weakref import ProxyType, CallableProxyType, proxy
 
@@ -13,29 +23,33 @@ Association = Union[
 
 def is_association(value: Any) -> bool:
     """
-    Determine whether the provided value is a ProxyType or CallableProxyType.
-
-    Parameters:
-    - value (Any): The value to check.
-
+    Determines whether the provided value is an instance of `ProxyType` or `CallableProxyType`.
+    
+    Args:
+        value (Any):
+             The value to be checked if it's an association proxy or callable proxy.
+    
     Returns:
-    - bool: True if 'value' is an instance of ProxyType or CallableProxyType, False otherwise.
+        bool:
+             True if the value is an instance of `ProxyType` or `CallableProxyType`, otherwise False.
+
     """
     return isinstance(value, (ProxyType, CallableProxyType))
 
 
 def association(element: T) -> Association[T]:
     """
-    Create a weak proxy reference to 'element'. If 'element' is already a proxy, it is returned as is.
-
-    A weak proxy reference allows one to access an object without preventing it from being
-    automatically destroyed by Python’s garbage collector.
-
-    Parameters:
-    - element (T): The original object to which the association (proxy reference) will be created.
-
+    Creates an association proxy object from a given element.
+    If the element is not already an association proxy object, it will create a new proxy for it using the `proxy` function. If it is already an association proxy object, it simply returns the element as-is.
+    
+    Args:
+        element (T):
+             The element to be converted into or verified as an association proxy object.
+    
     Returns:
-    - Association[T]: A weak proxy reference to 'element'.
+        Association[T]:
+             An association proxy object for the given element.
+
     """
     new_association = proxy(element) if not is_association(element) else element
     return new_association

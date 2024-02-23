@@ -1,12 +1,13 @@
 [tool.poetry]
 name = "stateforward"
-version = "0.2.8"
+version = "0.2.9"
 description = ""
-authors = ["leonwilly101 <leonwilly101@gmail.com>"]
+authors = ["Gabriel Willen <gabewillen@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
+pydocstringformatter = "^0.7.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest-asyncio = "^0.21.1"
@@ -18,3 +19,6 @@ ruff-lsp = "^0.0.47"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+pydocstyle.convention = "google"

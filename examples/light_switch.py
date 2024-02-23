@@ -174,12 +174,9 @@ class LightSwitch(sf.AsyncStateMachine):
     class Flashing(sf.State):
         pass
 
-    async def throw_behavior(self, *args, **kwargs):
-        raise Exception("Behavior exception")
-
     initial = sf.initial(Off)
     transitions = sf.collection(
-        sf.transition(OnEvent, source=Off, target=On, effect=throw_behavior),
+        sf.transition(OnEvent, source=Off, target=On),
         sf.transition(OffEvent, source=On, target=Off),
         sf.transition(FlashEvent, source=Off, target=Flashing),
     )
@@ -192,8 +189,6 @@ class ThreeWay(LightSwitch):
 if __name__ == "__main__":
 
     async def light_switch_main():
-        import pickle
-
         # instantiate a light switch
         light_switch = LightSwitch()
         # start the interpreter and wait for it to be settled
@@ -203,12 +198,12 @@ if __name__ == "__main__":
         # dispatch a OnEvent to the state machine
         task = await sf.send(OnEvent(), light_switch)
         print("->", task)
-        # print(light_switch.state)
-        # await sf.dispatch(OffEvent(), light_switch)
-        # print(light_switch.state)
-        # light_switch.flashing = True
-        # await asyncio.sleep(2)
-        # print(light_switch.state)
-        # print(light_switch, light_switch.flashing)
+        print(light_switch.state)
+        await sf.send(OffEvent(), light_switch)
+        print(light_switch.state)
+        light_switch.flashing = True
+        await asyncio.sleep(2)
+        print(light_switch.state)
+        print(light_switch, light_switch.flashing)
 
     asyncio.run(light_switch_main())

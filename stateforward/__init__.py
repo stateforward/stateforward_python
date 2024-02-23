@@ -109,11 +109,6 @@ pip install stateforward
         ```
 
 """
-from . import elements
-from .elements import *
-from .elements import decorators
-from . import state_machine
+from .core import *
 from .state_machine import *
-from . import model
 from .model import *
-from . import protocols
