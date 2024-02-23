@@ -1,107 +1,21 @@
 """
 
+The `element` module presented here provides a comprehensive framework for representing and manipulating a hierarchy of elements, designed to facilitate the creation and management of complex data models within a software application. It includes a rich set of functions to handle relationships and properties among elements, such as ownership and association management, type checking, element searching, and more. The module also defines an `Element` class, which serves as the base class for all elements within the hierarchy, and it is used to instantiate and define new elements with unique identities, owned elements, and various other attributes.
 
-Module element
----------------
+Key Functionalities:
 
-This module provides a framework for creating and managing element structures.
-It includes a collection of functions and definitions for manipulating elements,
-finding relationships between them, and dynamically creating element hierarchies.
+- **Identities and Types**: Utilize `id_of` and `type_of` to acquire the unique identifier and type of an element, respectively.
+- **Ownership Management**: Employ functions like `owned_elements_of`, `add_owned_element_to`, `remove_owned_element_from` to manage which elements are owned by others.
+- **Hierarchy Navigation**: Use `ancestors_of`, `descendants_of`, `is_ancestor_of`, `is_descendant_of` to traverse and verify relationships in the hierarchy.
+- **Associations Management**: Leverage `add_association_to`, `remove_association_from`, `associations_of` to manage named associations between elements.
+- **Search and Filter**: Functions like `find_owned_elements_of`, `find_ancestors_of`, `find_descendants_of` to find elements based on specified conditions.
+- **Redefinition and Specialization**: The `redefine` and `specialize` functions are provided to create specialized or redefined versions of existing elements.
+- **Attribute Handling**: `set_attribute`, `attributes_of` allow for setting and accessing custom attributes on elements.
+- **Utility Functions**: Various helper functions such as `is_type`, `is_subtype`, `is_element`, `name_of`, `qualified_name_of` support common operations needed for working with elements.
 
-Notable features include:
-- Tracking ownership and associations between elements.
-- Support for polymorphic element behavior with redefinition facilities.
-- Element identification, attribute management, and inheritance support.
+The `Element` class encapsulates common functionality needed for all elements in the model, including the initialization and management of class variables that track owned elements, associations, and other class-specific information. It also defines special class methods for defining, redefining, and creating instances of element classes.
 
-Classes:
-- Element:
-    A base class for creating element hierarchies with support for ownership,
-    associations, and custom initialization procedures.
-
-Functions:
-- id_of(element: ElementType) -> int
-    Retrieve a unique identifier for an element.
-
-- type_of(element: ElementType) -> type['Element']
-    Determine the type of the specified element.
-
-- owned_elements_of(element: ElementType) -> Generator[ElementType, None, None]
-    Iterate over elements owned by a given element.
-
-- descendants_of(element: ElementType) -> Generator[ElementType, None, None]
-    Generate all direct and indirect descendants of a given element.
-
-- is_descendant_of(ancestor: ElementType, descendant: ElementType) -> bool
-
-- ancestors_of(element: ElementType) -> Generator[ElementType, None, None]
-    Iterate over all ancestors of a given element.
-
-- is_ancestor_of(descendant: ElementType, ancestor: ElementType) -> bool
-
-- set_model(element: ElementType, model: ElementType)
-    Set the model for an element and its owned elements.
-
-- set_owner(element: ElementType, owner: ElementType)
-    Set the owner for an element and its owned elements.
-
-- add_owned_element_to(owner: ElementType, element: ElementType, name: str=None, *, change_ownership: bool=False)
-
-- remove_owned_element_from(owner: ElementType, element: ElementType, *, disassociate: bool=False) -> ElementType
-
-- remove_owned_elements_from(owner: ElementType, *owned_elements: typing.Collection[ElementType]) -> typing.Collection[ElementType]
-
-- add_association_to(owner: ElementType, element: ElementType, name: str=None)
-
-- remove_association_from(owner: ElementType, element: ElementType)
-
-- associations_of(element: ElementType) -> dict[str, ElementType]
-
-- name_of(element: ElementType) -> str
-
-- attributes_of(element: ElementType) -> dict[str, typing.Any]
-
-- qualified_name_of(element: ElementType) -> str
-
-- is_type(element: ElementType, types: typing.Union[type, typing.Collection[type]]) -> bool
-
-- is_subtype(element: ElementType, types: typing.Union[type, typing.Collection[type]]) -> bool
-
-- is_element(value: typing.Any) -> bool
-
-- owner_of(element: ElementType) -> ElementType
-
-- redefined_element_of(element: ElementType) -> ElementType
-
-- is_owner_of(owner: ElementType, element: ElementType) -> bool
-
-- specialize(base: ElementType, derived: ElementType, **kwargs)
-
-- is_redefined(element: ElementType) -> bool
-
-- redefine(element: ElementType, **kwargs)
-
-- find_owned_elements_of(element: 'ElementType', condition: typing.Callable[['ElementType'], bool]) -> Generator['ElementType', None, None]
-
-- find_owned_element_of(element: 'ElementType', condition: typing.Callable[['ElementType'], bool]) -> typing.Optional['ElementType']
-
-- find_ancestors_of(element: 'ElementType', condition: typing.Callable[['ElementType'], bool]) -> Generator['ElementType', None, None]
-
-- find_ancestor_of(element: 'ElementType', expr: typing.Callable[['ElementType'], bool]) -> typing.Optional['ElementType']
-
-- find_descendants_of(element: 'ElementType', condition: typing.Callable[['ElementType'], bool]) -> Generator['ElementType', None, None]
-
-- set_attribute(element: ElementType, name: str, value: typing.Any)
-
-- new(name: str, bases: typing.Collection[type]=None, **kwargs) -> type[T]
-
-TypeVars:
-- ElementType: A type variable bound to either 'Element' or derived types.
-- T: A generic type bound to 'Element'.
-
-Exceptions:
-- ValueError: If operations are performed that violate ownership or association rules.
-
-Note: Documentation automatically generated by https://undoc.ai
+This module offers a robust infrastructure for modeling relationships and hierarchies within complex systems and serves as a foundational tool for developers handling structured data within object-oriented paradigms.
 """
 import typing
 import types
@@ -114,23 +28,36 @@ T = typing.TypeVar("T", bound="Element")
 
 def id_of(element: ElementType) -> int:
     """
-    Returns the unique identifier of an 'element'.
-        The function attempts to retrieve an '__id__' attribute from the 'element'. If the '__id__'
-        attribute does not exist, it falls back to using the built-in 'id' function to generate
-        a unique identifier for the 'element'.
-        Args:
-            element (ElementType): The element for which the identifier is to be obtained.
-        Returns:
-            int: The unique identifier for the 'element'. This might be the '__id__' attribute
-                 of the 'element' if it exists; otherwise, it is the identifier returned by
-                 the built-in 'id' function.
+    Gets the unique identifier of a given element.
+    This function retrieves a unique identifier associated with the 'element' parameter.
+    If the 'element' has an '__id__' attribute, that value is returned. Otherwise, this function
+    falls back to Python's built-in `id()` function to return a unique identifier.
+
+    Args:
+        element (ElementType):
+             The element for which the unique identifier is to be retrieved.
+
+    Returns:
+        int:
+             The unique identifier for the 'element'. If '__id__' attribute exists it is returned; otherwise, the result of `id(element)` is returned.
+
     """
     return getattr(element, "__id__", id(element))
 
 
 def type_of(element: ElementType) -> type["Element"]:
     """
-    Determines the type of the given element. It retrieves the type information of the passed element object using a special attribute `__type__` which should be defined within the `ElementType` instance. This function is useful in introspecting the type information of elements which hold their type internally and non-standardly as `__type__` instead of the typical `__class__` attribute. Note that `ElementType` seems to be a custom type hint which should be defined elsewhere in the code. The function returns the type of the element as specified by its `__type__` attribute which is expected to be a subclass of the `Element` type or a type hint indicating such a subclass. This allows for dynamic type checking or retrieval in systems that define custom element types with associated metadata. It's important to ensure that `ElementType` instances have the `__type__` attribute correctly set to avoid any AttributeError exceptions when this function is called. Clients of this function should handle the possibility of such exceptions if the `ElementType` contract is not strictly enforced elsewhere in the system. The returned type can be used for further reflection or type enforcement in client code.
+    Determines the type of a given element.
+    This function takes an element of any type and returns its type.
+
+    Args:
+        element (ElementType):
+             The element for which to determine the type.
+
+    Returns:
+        type[Element]:
+             The type of the given element.
+
     """
     return element.__type__
 
@@ -139,14 +66,17 @@ def owned_elements_of(
     element: ElementType,
 ) -> typing.Generator[ElementType, None, None]:
     """
-        Generator function that yields elements owned by the given element.
-        This function iterates over the IDs of elements owned by the provided element object and yields each corresponding element from a collection of all elements.
-        Args:
-            element (ElementType): The element whose owned elements are to be retrieved. It must have an attribute `__owned_elements__` which is an iterable of element IDs (typically a list or tuple), and an attribute `__all_elements__` which is a collection (such as a dictionary) containing all possible elements indexed by their ID.
-        Yields:
-            ElementType: The elements owned by the provided element object.
-        Raises:
-            AttributeError: If the provided element object does not have the `__owned_elements__` or `__all_elements__` attributes necessary for the function to retrieve owned elements.
+    Generates elements owned by a given element.
+    The function iterates over element IDs stored in the `__owned_elements__` attribute of the provided element and yields the corresponding elements from the `__all_elements__` mapping.
+
+    Args:
+        element (ElementType):
+             The element whose owned elements are to be generated.
+
+    Returns:
+        Generator[ElementType, None, None]:
+             A generator that yields elements owned by the input element.
+
     """
     for owned_element_id in element.__owned_elements__:
         yield element.__all_elements__[owned_element_id]
@@ -154,14 +84,17 @@ def owned_elements_of(
 
 def descendants_of(element: ElementType) -> typing.Generator[ElementType, None, None]:
     """
-    Generates an iterator over all descendant elements of a given element.
-        This function recursively retrieves all elements owned by the given element
-        and its subsequent owned elements. It traverses the ownership tree and
-        yields every descendant element, effectively flattening the hierarchy.
-        Args:
-            element (ElementType): The element whose descendants are to be retrieved.
-        Yields:
-            ElementType: The next descendant element in the ownership hierarchy.
+    Generates all descendants of a given element in a hierarchy.
+    This generator function recursively yields all the descendants of the specified element. A descendant is defined as any element that is a direct or indirect child of the given element, at any depth level in the hierarchy. Each descendant element is yielded exactly once.
+
+    Args:
+        element (ElementType):
+             The element whose descendants are to be generated.
+
+    Yields:
+        ElementType:
+             The next descendant element in the hierarchy.
+
     """
     for owned_element in owned_elements_of(element):
         yield owned_element
@@ -170,12 +103,18 @@ def descendants_of(element: ElementType) -> typing.Generator[ElementType, None, 
 
 def is_descendant_of(ancestor: ElementType, descendant: ElementType) -> bool:
     """
-    Determines whether an element is a descendant of a specified ancestor element.
+    Determines whether a specified element is a descendant of a given ancestor element.
+
     Args:
-        ancestor (ElementType): The element that is to be checked as the ancestor.
-        descendant (ElementType): The element that is to be checked if it is a descendant.
+        ancestor (ElementType):
+             The element to be considered as the ancestor.
+        descendant (ElementType):
+             The element to check for being a descendant.
+
     Returns:
-        bool: True if the 'descendant' is a descendant of the 'ancestor', otherwise False.
+        bool:
+             True if the descendant is indeed a descendant of the ancestor, otherwise False.
+
     """
     return (
         next(
@@ -188,17 +127,17 @@ def is_descendant_of(ancestor: ElementType, descendant: ElementType) -> bool:
 
 def ancestors_of(element: ElementType) -> typing.Generator[ElementType, None, None]:
     """
-    Retrieves an iterator over the ancestors of a given element.
-        This function creates a generator that navigates from the given element up the ownership hierarchy,
-        yielding each ancestor element successively until reaching a top-level element that has no owner.
-        Args:
-            element (ElementType): The element for which to retrieve ancestors.
-        Returns:
-            Generator[ElementType, None, None]: A generator yielding ancestor elements of the provided element.
-        Note:
-            The generator stops when it reaches an element that does not have an owner.
-        Raises:
-            TypeError: If the element is not an instance of the expected ElementType.
+    Retrieves a generator of the ancestors of a given element.
+    The function yields the owner of the provided element, followed recursively by the owner of that owner, and so on. It continues to traverse the ownership hierarchy until it reaches an element that does not have an owner.
+
+    Args:
+        element (ElementType):
+             The element for which to determine the ancestry.
+
+    Returns:
+        typing.Generator[ElementType, None, None]:
+             A generator yielding the ancestors of the given element, in the order from the direct owner to the most distant ancestor found.
+
     """
     owner = owner_of(element)
     if owner is not None:
@@ -208,25 +147,34 @@ def ancestors_of(element: ElementType) -> typing.Generator[ElementType, None, No
 
 def is_ancestor_of(descendant: ElementType, ancestor: ElementType) -> bool:
     """
-    Checks whether a given element is an ancestor of another element.
+    Determines if the provided ancestor element is an ancestor of the specified descendant element.
+
     Args:
-        descendant (ElementType): The element to check as a descendant.
-        ancestor (ElementType): The element to check as an ancestor.
+        descendant (ElementType):
+             The element that is potentially a descendant.
+        ancestor (ElementType):
+             The element that is potentially an ancestor.
+
     Returns:
-        bool: True if the `ancestor` is an ancestor of the `descendant`, False otherwise.
+        bool:
+             True if the ancestor is an ancestor of the descendant, otherwise False.
+
     """
     return is_descendant_of(ancestor, descendant)
 
 
 def set_model(element: ElementType, model: ElementType):
     """
-    Sets the model attribute of an element to the identifier of the given model and recursively applies the same operation to all owned elements.
-    This function takes an ElementType instance, computes its model identifier using the `id_of` function, and assigns it to the `__model__` attribute of the element. It then iterates over all owned elements (retrievable via the `owned_elements_of` generator) and calls itself on each sub-element to propagate the model's identifier throughout the hierarchy of owned elements.
+    Sets the model attribute for a given element and propagates this setting to all elements owned by it.
+    Recursively sets the '__model__' attribute of the given 'element' to the integer ID of the 'model'. It also
+    applies the same setting to all elements that are considered owned by the 'element'. The 'owned_elements_of' generator is used to iterate over these owned elements.
+
     Args:
-        element (ElementType): The element for which the model is to be set.
-        model (ElementType): The model element whose identifier is to be applied to the element and its owned elements.
-    Returns:
-        None
+        element (ElementType):
+             The element for which the model is being set.
+        model (ElementType):
+             The model element whose ID will be used to set the '__model__' attribute.
+
     """
     element.__model__ = id_of(model)
     for owned_element in owned_elements_of(element):
@@ -235,17 +183,20 @@ def set_model(element: ElementType, model: ElementType):
 
 def set_owner(element: ElementType, owner: ElementType):
     """
-        Sets the owner of the given element and recursively sets the owner for all owned elements.
-        This function assigns an owner to the specified element by setting the element's `__owner__` attribute
-        to the identifier of the owner. It then proceeds to recursively apply the same operation to all elements
-        owned by the initial element, effectively setting up the ownership hierarchy. Additionally,
-        it establishes the model to which the element belongs by calling `set_model` with the element and its
-        owner's model.
-        Args:
-            element (ElementType): The element to which an owner is being assigned.
-            owner (ElementType): The element that will take ownership.
-        Raises:
-            AttributeError: If `__owner__`, `__all_elements__`, or `__model__` attributes do not exist on the element.
+    Sets the owner of an element and all its owned elements to a specified owner element, then updates their model references to the model of the new owner.
+    This function recursively assigns the owner's ID to the element and all of its owned
+    sub-elements. It also updates the model reference for each element to match the model
+    reference of the new owner. This procedure ensures a consistent ownership hierarchy and
+    proper linkage to the corresponding model for each element within a given context.
+
+    Args:
+        element (ElementType):
+             The element whose owner and model are to be updated.
+        owner (ElementType):
+             The element that will be set as the new owner.
+
+    Returns:
+
     """
     element.__owner__ = id_of(owner)
     for owned_element in owned_elements_of(element):
@@ -256,31 +207,29 @@ def set_owner(element: ElementType, owner: ElementType):
 def add_owned_element_to(
     owner: ElementType,
     element: ElementType,
-    name: str = None,
     *,
     change_ownership: bool = False,
 ):
     """
-    def add_owned_element_to(owner: ElementType, element: ElementType, name: str=None, *, change_ownership: bool=False):
-        Adds an element to the list of elements owned by a specified owner.
-        Given an element and an owner, this function sets the element's ownership to the specified
-        owner and adds the element's identifier to the owner's list of owned elements.
-        Optionally, a name can be assigned to the element within the context of its owner.
-        If the element already has an owner and `change_ownership` is set to `True`, the element
-        is first disassociated from the current owner before being reassigned.
-        Args:
-            owner (ElementType): The owner to which the element will be added.
-            element (ElementType): The element to be owned.
-            name (str, optional): The name to assign to the element within the owner's context.
-                Defaults to None. The functionality related to setting the element's name
-                based on this parameter is commented out and thus not implemented.
-            change_ownership (bool, optional): A flag to indicate whether to force change of ownership
-                in case the element already has an owner. Defaults to False. If set to True,
-                the element is removed from its previous owner before being reassigned.
-        Raises:
-            ValueError: If the element already has an owner and `change_ownership` is False.
-        Returns:
-            ElementType: The element which has now been associated with the specified owner.
+    Adds an owned element to the specified owner, optionally changing the current ownership.
+    This function is responsible for taking an element and adding it to the ownership structure of the given owner.
+    If the element already has an owner and `change_ownership` is `False`, a `ValueError` is raised. If `True`, the current owner is disassociated before proceeding.
+    The function sets the element's ownership to the given owner and appends its identifier to the owner's list of owned elements.
+
+    Args:
+        owner (ElementType):
+             The entity that will own the element after the operation.
+        element (ElementType):
+             The element to be added to the ownership structure of the owner.
+        change_ownership (bool, optional):
+             A flag to indicate if the ownership should be changed if the element already has an owner. Defaults to `False`.
+
+    Raises:
+        ValueError:
+             If the element already has an owner and `change_ownership` is `False`.
+
+    Returns:
+
     """
     element_owner = owner_of(element)
     if element_owner is not None:
@@ -289,28 +238,31 @@ def add_owned_element_to(
         remove_owned_element_from(element_owner, element)
     set_owner(element, owner)
     owner.__owned_elements__.append(id_of(element))
-    # if name is not None and not is_collection(owner):
-    #     element.__name__ = name
-    #     element.__qualname__ = f"{owner.__qualname__}.{name}"
 
 
 def remove_owned_element_from(
     owner: ElementType, element: ElementType, *, disassociate: bool = False
 ) -> ElementType:
     """
-        Removes an owned element from its owner and optionally disassociates it from other elements.
-        This function removes the element identified by 'element' from the '__owned_elements__' list
-        of the 'owner' provided. If the 'disassociate' flag is set to True, it will also remove any
-        associations between the 'element' and other elements in the '__associations__' mapping.
-        Args:
-            owner (ElementType): The owner of the element that is to be removed.
-            element (ElementType): The element to be removed from its owner.
-            disassociate (bool, optional): A flag indicating whether to remove associations of the 'element'
-                                          with other elements. Defaults to False.
-        Returns:
-            ElementType: The element that has been removed.
-        Raises:
-            ValueError: If the element is not owned by the owner.
+    Removes an owned element from its owner and optionally disassociates related elements.
+
+    Args:
+        owner (ElementType):
+             The owner object from which to remove the element.
+        element (ElementType):
+             The element to be removed from the owner.
+        disassociate (bool, optional):
+             Flag that indicates whether to disassociate the
+            element from related elements. Defaults to False.
+
+    Returns:
+        ElementType:
+             The element that was removed.
+
+    Raises:
+        ValueError:
+             If the element is not owned by the given owner.
+
     """
     element_id = id_of(element)
     if owner_of(element) != owner:
@@ -327,21 +279,26 @@ def remove_owned_elements_from(
     owner: ElementType, *owned_elements: typing.Collection[ElementType]
 ) -> typing.Collection[ElementType]:
     """
-    Removes a collection of owned elements from a specified owner element.
-    This function takes an owner element of type `ElementType` and a variable
-    number of arguments representing collections of elements, also of type
-    `ElementType`, that are owned by the owner. It removes each element in
-    the collections from the owner. If no collections are provided, it retrieves
-    the owned elements by calling the `owned_elements_of` function. Once the owned
-    elements are determined, it removes them using the `remove_owned_element_from`
-    function and returns them as a tuple.
+    Removes a collection of owned elements from their owner object.
+    This function takes an owner object, optionally followed by a collection of owned elements,
+    and endeavours to remove those elements from the owner. If the collection of owned elements
+    is not explicitly provided, the function first retrieves them all using an external function
+    `owned_elements_of(owner)`. It iterates over these elements and removes each one individually
+    by invoking `remove_owned_element_from(owner, owned_element)`. After removal, it collects and
+    returns the removed elements as a tuple.
+
     Args:
-        owner (ElementType): The element from which the owned elements are to be removed.
-        *owned_elements (typing.Collection[ElementType]): Variable number of arguments,
-            each representing a collection of elements to be removed from the owner.
+        owner (ElementType):
+             The object from which owned elements will be removed.
+        *owned_elements (typing.Collection[ElementType]):
+             An optional collection of owned elements to
+            be removed. If not provided, all owned elements of the owner will be processed.
+
     Returns:
-        typing.Collection[ElementType]: A collection (tuple) of all the elements that were
-            removed from the owner.
+        typing.Collection[ElementType]:
+             A collection (specifically a tuple) of owned elements
+            that have been removed from the owner.
+
     """
     if not owned_elements:
         owned_elements = tuple(owned_elements_of(owner))
@@ -354,30 +311,44 @@ def remove_owned_elements_from(
 
 def add_association_to(owner: ElementType, element: ElementType, name: str = None):
     """
-    Adds an association between two elements with an optional name.
-        This function creates an association between the 'owner' and 'element' by
-        assigning the id of the 'element' to the 'owner's '__associations__' dictionary
-        using the provided 'name' as a key. If no 'name' is provided, the association
-        is still created but without a specific name. The unique identifier of the
-        'element' is retrieved using the 'id_of' function.
-        Args:
-            owner (ElementType): The element to which the association is being added.
-            element (ElementType): The element that is being associated with the 'owner'.
-            name (str, optional): A name for the association. Defaults to None.
+    Adds an association to an owner element with a reference to another element by its unique identifier.
+    The association is recorded in the owner's `__associations__` dictionary, with the
+    name as the key and the unique identifier of the element as the value.
+
+    Args:
+        owner (ElementType):
+             The element that will hold the association.
+        element (ElementType):
+             The element to which the owner element will be associated.
+        name (str, optional):
+             The key under which the association is stored. If not provided,
+            a default or an implicit name should be determined in other parts of the codebase.
+
+    Raises:
+        AttributeError:
+             If the owner does not have an `__associations__` attribute.
+
     """
     owner.__associations__[name] = id_of(element)
 
 
 def remove_association_from(owner: ElementType, element: ElementType):
     """
-    Removes a specified association between a owner object and an element object in a separate collection within the owner.
-    The function traverses through the association dictionary of the owner to find a matching element.
-    If a matching element is found, it is then removed from the owner's associations.
+    Removes the association between two ElementType objects.
+    This function iterates over the associations of the 'owner' ElementType,
+    comparing each associated element to the 'element' argument. If a match is found,
+    the association is removed from the 'owner' by deleting the association entry.
+
     Args:
-        owner (ElementType): The object from which the association will be removed.
-        element (ElementType): The element to be disassociated from the owner object.
-    Raises:
-        KeyError: If the association does not exist or has already been removed, a KeyError may be raised when attempting to delete the non-existent key.
+        owner (ElementType):
+             The ElementType object from which the association is to be removed.
+        element (ElementType):
+             The ElementType object which is to be disassociated from the owner.
+
+    Returns:
+        None:
+             The function doesn't return anything.
+
     """
     for name, element in associations_of(owner).items():
         if element == element:
@@ -386,19 +357,17 @@ def remove_association_from(owner: ElementType, element: ElementType):
 
 def associations_of(element: ElementType) -> dict[str, ElementType]:
     """
-    Returns a dictionary of associations for a given ElementType instance.
-    This function constructs a dictionary where each key-value pair represents an association
-    name and the corresponding element respectively. It utilizes the internals of the given
-    ElementType instance to resolve these associations.
+    Retrieves the associations of a given ElementType object.
+    This function takes an ElementType object and returns a dictionary where the keys are the names of the associated elements, and the values are the associated ElementType instances. It works by iterating over the element's `__associations__` attribute which contains a mapping of names to element IDs, and uses the `__all_elements__` mapping attribute of the element to obtain the actual ElementType instances.
+
     Args:
-        element (ElementType): The ElementType instance whose associations are to be retrieved.
+        element (ElementType):
+             The ElementType object whose associations are to be retrieved.
+
     Returns:
-        dict[str, ElementType]: A dictionary with keys as association names and values as ElementType
-                               instances associated with the given element.
-    Raises:
-        KeyError: If an association id can't be found in the element's __all_elements__ mapping.
-        AttributeError: If the given element does not have the required __all_elements__ or
-                        __associations__ attributes.
+        dict[str, ElementType]:
+             A dictionary mapping names to ElementType instances representing the associations of the provided element.
+
     """
     return dict(
         (name, element.__all_elements__[element_id])
@@ -410,17 +379,24 @@ def associations_for(
     element: ElementType, associated: ElementType
 ) -> dict[str, ElementType]:
     """
-        Retrieves a dictionary of associations between the given element and an associated element.
-        Scans through the associations of the `element` searching for those that have the same ID
-        as the `associated` element, then returns a dictionary where the keys are the names of
-        the associations and the values are the associated elements themselves.
-        Args:
-            element (ElementType): The element for which to find associations.
-            associated (ElementType): The element that should be associated with the given element.
-        Returns:
-            dict[str, ElementType]: A dictionary comprising the names of the associations as keys
-                and the associated ElementType instances as values, filtered by those matching the
-                ID of the `associated` element.
+    Retrieves a dictionary of associations between two elements of specified types.
+    This function searches within the given 'element's associations, identifying and
+    returning associations where the associated element has the same id as
+    the 'associated' element. Each matching association is stored in the dictionary
+    with the association name as the key and the corresponding element as the value.
+
+    Args:
+        element (ElementType):
+             The element from which associations will be searched.
+        associated (ElementType):
+             The element whose id is used to find matching associations.
+
+    Returns:
+        dict[str, ElementType]:
+             A dictionary where each key is the name of the
+            association, and each value is the `ElementType` instance associated with
+            the 'associated' element's id.
+
     """
     return dict(
         (name, element.__all_elements__[element_id])
@@ -431,45 +407,54 @@ def associations_for(
 
 def name_of(element: ElementType) -> str:
     """
-        Retrieve the name of the provided element.
-        This function takes an element which could be a type (class) or an instance of a class and
-        returns the name of the class itself or the name of the class that the instance belongs to.
-        Args:
-            element (ElementType): The element (type or instance) for which the name is to be retrieved.
-        Returns:
-            str: The name of the element's type or class.
+    Gets the name of a given element.
+
+    Args:
+        element (ElementType):
+             The element whose name is to be retrieved. This can be an instance or a class.
+
+    Returns:
+        str:
+             The name of the element. If 'element' is a class, it returns the name of the class. If 'element' is an instance of a class, it returns the name of the instance's class.
+
     """
     return element.__name__ if isinstance(element, type) else element.__class__.__name__
 
 
 def attributes_of(element: ElementType) -> dict[str, typing.Any]:
     """
-        Retrieves the annotations of attributes for an ElementType object.
-        The function inspects a given ElementType instance and extracts its
-        annotations using the `__annotations__` attribute. These annotations typically
-        represent the expected types for the attributes of the ElementType.
-        Args:
-            element (ElementType): The instance of ElementType for which to retrieve attribute annotations.
-        Returns:
-            dict[str, typing.Any]: A dictionary where the keys are attribute names
-            and the values are the types indicated by the annotations.
+    Retrieves the annotations of the attributes from a given ElementType object.
+
+    Args:
+        element (ElementType):
+             The object whose attribute annotations we want to obtain.
+
+    Returns:
+        dict[str, typing.Any]:
+             A dictionary where the keys are the names of the attributes and the values are the corresponding annotations.
+
     """
     return element.__annotations__
 
 
 def qualified_name_of(element: ElementType) -> str:
     """
-        Determines the fully qualified name of the given element.
-        A fully qualified name is the complete dot-separated path needed to access the element from the global scope.
-        For example, given a class `C` defined inside a module `M`, its fully qualified name would be `M.C`.
-        This function first retrieves the owner of the given element and, if the owner exists, constructs the fully qualified name
-        by recursively fetching the owner's qualified name and appending the current element's name.
-        If the element has no owner, it simply returns the name of the element.
-        Args:
-            element (ElementType): The element whose fully qualified name is to be obtained. Expected to be an instance or class
-                                 that has the `__owner__` attribute or is present in the `__all_elements__` mapping of its owner.
-        Returns:
-            str: The fully qualified name of the element.
+    Determines the fully qualified name of the provided `element` by traversing its ownership hierarchy.
+    This function ascertains the complete dotted path name of the element starting from the top-level owner down to the element itself. This is useful for identifying elements within a nested structure with their full context.
+
+    Args:
+        element (ElementType):
+             The element for which to determine the qualified name. The ElementType is
+            a type that is assumed to have `__name__` and `__owner__` attributes or a way to identify its
+            owner and its container.
+
+    Returns:
+        str:
+             A string representing the fully qualified name of the element.
+            The function first identifies the owner of the element, then recursively constructs the qualified name
+            by prepending the name of the owner (if any) followed by a dot and then the name of the element itself.
+            If the element does not have an owner, the function simply returns the name of the element.
+
     """
     owner = owner_of(element)
     if owner is None:
@@ -481,13 +466,24 @@ def is_type(
     element: ElementType, types: typing.Union[type, typing.Collection[type]]
 ) -> bool:
     """
-    Checks if the given element is of the specified type or types.
-        This function can handle both type objects and instances. It uses 'issubclass' when 'element' is a type object, 'isinstance' otherwise.
-        Args:
-            element (ElementType): The element to check.
-            types (Union[type, Collection[type]]): A single type or a collection of types to check against.
-        Returns:
-            bool: True if 'element' is a type and a subclass of 'types', or if 'element' is an instance and an instance of 'types'. False otherwise.
+    Determines if an element is of a given type or types.
+    This function checks if the provided element is either an instance of, or a subclass of,
+    the given type or types. It supports checking against a single type or a collection
+    of types. If multiple types are provided, the function will return True if the element
+    matches any one of the types.
+
+    Args:
+        element (ElementType):
+             The element to check.
+        types (typing.Union[type, typing.Collection[type]]):
+             A single type or a collection of types
+            against which to check the element.
+
+    Returns:
+        bool:
+             True if the element is an instance of one of the types or is a subclass of one
+            of the types, otherwise False.
+
     """
     return (
         issubclass(element, types)
@@ -500,14 +496,21 @@ def is_subtype(
     element: ElementType, types: typing.Union[type, typing.Collection[type]]
 ) -> bool:
     """
-    Checks whether a given element is a subtype of the specified type(s) and not actually one of the types given.
+    Determines if a given element type is a subtype of specified types.
+    This function checks if the provided `element` is not exactly one of the `types` and subsequently verifies if it is a subclass or an instance of the given `types`.
+
     Args:
-        element (ElementType): The element to check.
-        types (typing.Union[type, typing.Collection[type]]): The type or collection of types to check against.
+        element (ElementType):
+             The element or type to check.
+        types (Union[type, Collection[type]]):
+             A single type or a collection of types to compare with the `element`.
+
     Returns:
-        bool: True if the element is a subtype of one or more types in the given collection and is not any of the types provided; otherwise, False.
-    Raises:
-        TypeError: If 'types' is not a type or a collection of types.
+        bool:
+             True if `element` is a subtype of any of the given `types`, otherwise False.
+
+    Note:
+
     """
     if is_element(types):
         types = (types,)
@@ -516,27 +519,38 @@ def is_subtype(
 
 def is_element(value: typing.Any) -> bool:
     """
-        Check if the value is an instance of the Element class or a subclass thereof.
-        Args:
-            value (typing.Any): The value to be checked.
-        Returns:
-            bool: True if the value is an instance or subclass of Element, False otherwise.
+    Determines whether a given value is an instance of the Element type or a subtype thereof.
+    This function checks if the provided value is an instance of Element or any class derived from Element.
+
+    Args:
+        value (typing.Any):
+             The value to be checked.
+
+    Returns:
+        bool:
+             True if 'value' is an instance of Element or a derived class, otherwise False.
+
     """
     return is_type(value, Element)
 
 
 def owner_of(element: ElementType) -> ElementType:
     """
-        Retrieves the owner of the specified element.
-        The `owner_of` function takes an element which could be of any defined ElementType and
-        returns the owner of that element. If the provided element is an instance of Element,
-        it directly returns the owner from the element's `__owner__` attribute. If the element is not an instance of Element,
-        it attempts to retrieve the owner from a mapping called `__all_elements__` using the element's `__owner__` as a key.
-        Args:
-            element (ElementType): The element for which the owner information is being requested.
-        Returns:
-            ElementType: The owner of the provided element if found, or None if either the element is not an
-            instance of Element or the owner cannot be found in `__all_elements__`.
+    Determines the owner of a given element.
+    The function checks if the provided 'element' is an instance of the Element type and retrieves its owner attribute. If the element is not an instance of Element, it attempts to look up the owner in the element's '__all_elements__' dictionary using the element's '__owner__' attribute as the key. The function then returns the owner of the element.
+
+    Args:
+        element (ElementType):
+             The element for which the owner is to be determined.
+
+    Returns:
+        ElementType:
+             The owner of the provided element. If the element is an instance of the Element type, returns the value of its __owner__ attribute. If not, returns the corresponding value from the element's '__all_elements__' dictionary for the key '__owner__'.
+
+    Raises:
+        AttributeError:
+             If '__owner__' or '__all_elements__' attributes do not exist on the provided element.
+
     """
     return (
         element.__owner__
@@ -547,51 +561,63 @@ def owner_of(element: ElementType) -> ElementType:
 
 def redefined_element_of(element: ElementType) -> ElementType:
     """
-    Returns the redefined representation of the given element.
-        This function expects an object of ElementType which has an attribute `__redefined_element__` that holds
-        a redefined version of the element. It retrieves this attribute from the object and returns it. The function
-        is designed to work with instances that conform to this interface, and the behavior is unspecified if
-        `__redefined_element__` is not an attribute of the input object.
-        Args:
-            element (ElementType): An object of ElementType which contains a redefined version as an attribute.
-        Returns:
-            ElementType: The redefined version of the element as specified in `__redefined_element__`.
-        Raises:
-            AttributeError: If the `__redefined_element__` attribute does not exist on the input element.
+    Retrieves the redefined element from the given element object.
+    This function fetches the '__redefined_element__' attribute from the element passed to it. It expects a
+    predefined attribute '__redefined_element__' to be present on the 'element' which is the redefined version of the element.
+
+    Args:
+        element (ElementType):
+             The element from which the redefined version will be retrieved.
+
+    Returns:
+        ElementType:
+             The redefined version of the element.
+
+    Raises:
+        AttributeError:
+             If the element does not have '__redefined_element__' attribute.
+
     """
     return element.__redefined_element__
 
 
 def is_owner_of(owner: ElementType, element: ElementType) -> bool:
     """
-    Determines whether the specified owner is the owner of the given element.
-        This function checks if the given 'owner' is the owner of the specified 'element'.
-        Ownership is determined by comparing the owner of 'element' with the specified 'owner'.
-        Args:
-            owner (ElementType): The potential owner to be verified against the element.
-            element (ElementType): The element whose ownership is to be checked.
-        Returns:
-            bool: True if 'owner' is the owner of 'element', otherwise False.
+    Determines if the provided 'owner' is the owner of the 'element'.
+
+    Args:
+        owner (ElementType):
+             The potential owner whose ownership is being checked.
+        element (ElementType):
+             The element for which ownership is being verified.
+
+    Returns:
+        bool:
+             True if 'owner' is the owner of 'element', otherwise False.
+
     """
     return owner_of(element) == owner
 
 
 def specialize(base: ElementType, derived: ElementType, **kwargs):
     """
-    Describes the process of creating a specialized version of an element, including duplicating owned elements and remapping associations.
+    Specializes the given base ElementType by deriving a new ElementType with properties and associations of the base type adjusted for the derived type.
+    This function works by iterating through the owned elements of the base ElementType and creating a new owned element for each of them within the derived ElementType with redefinitions as needed. Associations within the base ElementType are also remapped to corresponding elements within the derived ElementType. If the base ElementType has no owner, a mapping is established between the base elements and the new elements, and associations are adapted accordingly.
+
     Args:
-        base (ElementType): The base element from which the specialized version is derived.
-        derived (ElementType): The element that represents the specialized version of the base.
-        **kwargs: Variable keyword arguments that are currently not used but might be provided for future extensions.
+        base (ElementType):
+             The base element type from which the new derived type will be created.
+        derived (ElementType):
+             The new element type that will inherit and specialize from the base type.
+        **kwargs:
+             Additional keyword arguments (unused).
+
     Returns:
-        None: The function does not return any value.
-    Side Effects:
-        Modifies `derived` by adding new owned elements that are specialized versions of `base`'s owned elements.
-        Establishes new associations in `derived` by remapping the associations of `base` to the corresponding new specialized elements.
-    Raises:
-        TypeError: If the created new class for the owned elements does not satisfy the requirements of being an `ElementType`.
+        None:
+             The function performs in-place specialization and does not return any value.
+
     """
-    # we have to create copies of the base elements during inheritance
+    # we have to create copies of the base core during inheritance
     # loop through base owned element mapping
     for owned_element_id in base.__owned_elements__:
         # get the owned element
@@ -629,36 +655,43 @@ def specialize(base: ElementType, derived: ElementType, **kwargs):
 
 def is_redefined(element: ElementType) -> bool:
     """
-    Determines if the given element has been redefined.
-    This function checks if the element passed to it has an attribute `__redefined_element__` which is not `None`. Essentially, it checks if the `redefined_element_of` function applied to the element returns a value that is not `None`, indicating that the element has indeed been redefined.
+    Determines if the provided element has been redefined.
+    This function checks whether the element passed to it has a redefined counterpart by calling the 'redefined_element_of' function and
+    inspecting if the returned value is not None.
+
     Args:
-        element (ElementType): The element to check for redefinition.
+        element (ElementType):
+             The element to check for a redefinition.
+
     Returns:
-        bool: True if the element has been redefined, otherwise False.
+        bool:
+             True if the element has been redefined, False otherwise.
+
     """
     return redefined_element_of(element) is not None
 
 
 def redefine(element: ElementType, **kwargs):
     """
-        Redefines an existing element by creating a new class with the same name, inheriting from the original element.
-        This function dynamically creates a new class based on the provided `element`. The new class will inherit
-        from the original `element` class and will include any additional keyword arguments passed to this function
-        as class-level attributes.
-        Args:
-            element (ElementType): The base class from which the new class will inherit.
-            **kwargs: Arbitrary keyword arguments that will be included as attributes in the new class.
-        Returns:
-            ElementType: A new class that inherits from `element` and contains the additional class-level
-            attributes as specified in `kwargs`.
-        Raises:
-            TypeError: If the `name_of` function does not return a string, which is required for the class name.
+    Redefines an existing element by creating a new subclass with additional properties.
+    The `redefine` function takes an existing class or type (referred to as `element`) and returns a new class that is a subclass of the given `element`. This subclass can incorporate additional properties that are passed to the function as keyword arguments (`**kwargs`). The original class/type is also stored as an attribute `redefined_element` in the newly created subclass.
+
+    Args:
+        element (ElementType):
+             The original class or type that is to be redefined into a new subclass.
+        **kwargs:
+             Arbitrary keyword arguments that represent additional properties to be included in the new subclass.
+
+    Returns:
+        ElementType:
+             A new subclass of the provided `element`, with added keyword arguments as attributes.
+
     """
     return typing.cast(
         ElementType,
         types.new_class(
             name_of(element),
-            (element,),
+            kwargs.pop("bases", (element,)),
             {
                 "redefined_element": element,
                 **kwargs,
@@ -671,13 +704,19 @@ def find_owned_elements_of(
     element: "ElementType", condition: typing.Callable[["ElementType"], bool]
 ) -> typing.Generator["ElementType", None, None]:
     """
-    Iterates over elements owned by a given element and yields those that meet a specified condition.
+    Generates elements owned by a given element that meet a specified condition.
+    This generator function iterates through elements owned by the provided `element` and yields each owned element that satisfies the `condition` function. The `condition` function should take an `ElementType` as its argument and return a boolean indicating whether the element meets the desired criteria.
+
     Args:
-        element (ElementType): The element whose owned elements are to be examined.
-        condition (Callable[[ElementType], bool]): A function that takes an ElementType as an argument and returns a boolean value.
-            The condition is used to determine which owned elements should be yielded.
-    Yields:
-        ElementType: An owned element of the 'element' argument that satisfies the 'condition' callable.
+        element (ElementType):
+             The element whose owned elements are to be examined.
+        condition (Callable[[ElementType], bool]):
+             A function that takes an `ElementType` as an argument and returns True if the element satisfies the condition; otherwise, False.
+
+    Returns:
+        Generator[ElementType, None, None]:
+             A generator yielding owned elements of the provided `element` that satisfy the `condition`.
+
     """
     for owned_element in owned_elements_of(element):
         if condition(owned_element):
@@ -688,17 +727,23 @@ def find_owned_element_of(
     element: "ElementType", condition: typing.Callable[["ElementType"], bool]
 ) -> typing.Optional["ElementType"]:
     """
-    Finds the first element owned by a particular element that satisfies a given condition.
-        This function searches through the elements owned by the provided element, and returns the first one
-        that meets the condition specified by the 'condition' callable. If no such element exists, it returns None.
-        Args:
-            element (ElementType): The element to search within for owned elements.
-            condition (Callable[[ElementType], bool]): A function that takes an 'ElementType' as its
-                 argument and returns a boolean value. This function is used to test each owned element
-                 to determine if it satisfies the given condition.
-        Returns:
-            Optional[ElementType]: The first owned element that satisfies the 'condition' callable, or None
-                if no such element is found.
+    Finds the first element within a given element's ownership hierarchy that satisfies a specified condition.
+    This function traverses the ownership structure of the provided element to locate the first child or descendant
+    that meets the criteria defined by the `condition` callable. If such an element is found, it is returned;
+    otherwise, the function returns `None`.
+
+    Args:
+        element (ElementType):
+             The element from which the search for owned elements should begin.
+        condition (Callable[[ElementType], bool]):
+             A function that takes an element of type `ElementType` as a single argument
+            and returns a boolean value. The function should return `True` for an element that fulfills the
+            search criteria and `False` otherwise.
+
+    Returns:
+        Optional[ElementType]:
+             The first element that satisfies the condition, or `None` if no matching element is found.
+
     """
     return next(find_owned_elements_of(element, condition), None)
 
@@ -707,19 +752,21 @@ def find_ancestors_of(
     element: "ElementType", condition: typing.Callable[["ElementType"], bool]
 ) -> typing.Generator["ElementType", None, None]:
     """
-    Finds and yields all ancestors of a given element that satisfy a specified condition.
-    This function iterates over all ancestors of the provided element and yields
-    those which satisfy a user-defined condition. An ancestor is considered
-    as any element that can be reached by recursively obtaining the owner
-    of the original element. The condition is a callable that takes
-    an element as an argument and returns a boolean value.
+    Generates a sequence of ancestor elements of a given element that satisfy a specified condition.
+    This generator function traverses the ancestor hierarchy of the provided element, testing each ancestor against a condition function.
+    It yields each ancestor element that meets the criteria defined by the condition function. The traversal continues until the root of the hierarchy is reached or the generator is exhausted.
+
     Args:
-        element (ElementType): The element for which to find ancestors.
-        condition (typing.Callable[['ElementType'], bool]): A callable that takes
-            an ElementType as an argument and returns a boolean. If the callable
-            returns True, the element is yielded by the generator.
+        element (ElementType):
+             The element whose ancestors are to be found.
+        condition (typing.Callable[[ElementType], bool]):
+             A callable that takes an element as its single argument
+            and returns a boolean indicating whether the element meets the desired condition.
+
     Yields:
-        ElementType: An ancestor of the input element that satisfies the condition.
+        ElementType:
+             Ancestors of the initial element that satisfy the condition.
+
     """
     for element in ancestors_of(element):
         if condition(element):
@@ -730,16 +777,18 @@ def find_ancestor_of(
     element: "ElementType", expr: typing.Callable[["ElementType"], bool]
 ) -> typing.Optional["ElementType"]:
     """
-        Finds the closest ancestor of the given element that matches the specified condition.
-        This function traverses the ancestry of the provided element and returns the first ancestor
-        for which the given callable `expr` returns True. If no such ancestor exists, None is returned.
-        Args:
-            element (ElementType): The element whose ancestors are to be searched.
-            expr (Callable[[ElementType], bool]): A function that takes an element as its argument
-                and returns a boolean value indicating whether the element matches the condition.
-        Returns:
-            Optional[ElementType]: The first ancestor element that satisfies the condition `expr`,
-                or None if no such element is found.
+    Finds the first ancestor of a specified element that matches a given condition.
+
+    Args:
+        element (ElementType):
+             The element from which to begin the search for an ancestor.
+        expr (typing.Callable[['ElementType'], bool]):
+             A function that takes an element as an argument and returns True if the element matches the condition, False otherwise.
+
+    Returns:
+        typing.Optional['ElementType']:
+             The first ancestor element that matches the condition specified by expr. If no matching ancestor is found, returns None.
+
     """
     return next(find_ancestors_of(element, expr), None)
 
@@ -749,17 +798,21 @@ def find_descendants_of(
     condition: typing.Callable[["ElementType"], bool],
 ) -> typing.Generator["ElementType", None, None]:
     """
-    Generates a sequence of descendant elements that satisfy a given condition.
-        Args:
-            element (ElementType): The element whose descendants are to be examined.
-            condition (typing.Callable[['ElementType'], bool]): A callable that takes an ElementType
-                as input and returns a boolean indicating whether the element satisfies the condition.
-        Yields:
-            typing.Generator['ElementType', None, None]: A generator of ElementType objects that are
-                descendants of the input element and satisfy the condition.
-        This function recursively searches through the descendants of the provided element using
-        the `descendants_of` function. It checks each descendant to see if it satisfies the given
-        condition, and if so, yields that element.
+    Finds and yields descendants of a given element that satisfy a specified condition.
+    This generator function traverses through the descendants of the provided element, checking each one
+    against the given condition function. If a descendant meets the condition, it is yielded.
+
+    Args:
+        element (ElementType):
+             The element whose descendants will be checked.
+        condition (Callable[[ElementType], bool]):
+             A function that takes an element as its argument
+            and returns True if the element satisfies the condition, otherwise False.
+
+    Yields:
+        ElementType:
+             The next descendant of 'element' that satisfies the 'condition'.
+
     """
     for element in descendants_of(element):
         if condition(element):
@@ -772,28 +825,27 @@ def set_attribute(
     value: typing.Any,
 ):
     """
-    Sets an attribute for a given ElementType with optional ownership and association handling. 
+    Sets an attribute for an ElementType object with special handling for Element objects.
+    This method sets an attribute on an ElementType object with the given name and value. If the value is an Element,
+    additional steps are taken to manage ownership and associations. If the Element is not owned by any ElementType, or if
+    it's a descendant of 'element' and it doesn't belong to a different model, it will be added to 'element's owned
+    elements. Furthermore, an association between 'element' and the value is established using the name as the key.
+    If the provided value is not an Element, the attribute is simply set on 'element' with the provided name and value.
+
     Args:
-        element (ElementType): 
-            The element on which to set the attribute. 
-        name (str): 
-            The name of the attribute to set. 
-        value (typing.Any): 
-            The value to assign to the attribute. This can be a simple data type or an ElementType. 
+        element (ElementType):
+             The ElementType object to which the attribute should be set.
+        name (str):
+             The name of the attribute to be set.
+        value (typing.Any):
+             The value to be assigned to the attribute. If an Element, ownership and
+            association logic applies.
+
     Raises:
         ValueError:
-            If the value is an ElementType that already belongs to a different owner and
-            cannot change ownership.
-    Note:
-        If the value is an ElementType and it is not already owned by the provided
-        element, ownership rules are applied. The function will check if the value
-        can be changed to the new ownership and update the associations accordingly.
-        1. If the value has no owner or is a descendant of the 'element', and both
-           have the same model, ownership change is allowed without raising an error.
-        2. The function will raise a ValueError if the change of ownership is not
-           permitted but attempted.
-        3. After the potential ownership change, the association between 'element'
-           and value is registered using the provided 'name' as the association name. 
+             If the Element value is owned by a different model and is not a descendant
+            of 'element', or if any ownership related issues are encountered.
+
     """
     if is_element(value):
         value_id = id_of(value)
@@ -803,22 +855,27 @@ def set_attribute(
                 owner is None or is_descendant_of(element, owner)
             ) and element.__model__ != id_of(value)
             if change_ownership:
-                add_owned_element_to(
-                    element, value, name, change_ownership=change_ownership
-                )
+                add_owned_element_to(element, value, change_ownership=change_ownership)
         add_association_to(element, value, name)
     setattr(element, name, value)
 
 
 def new(name: str, bases: typing.Collection[type] = None, **kwargs) -> type[T]:
     """
-    Creates a new type with the specified name, optional base classes, and additional attributes.
+    Creates a new class with the given name, optional base classes, and any additional keyword arguments.
+
     Args:
-        name (str): The name of the new type to create.
-        bases (typing.Collection[type]): An optional collection of base classes from which the new type will inherit. If not supplied, the base will default to (Element,).
-        **kwargs: Arbitrary keyword arguments representing additional attributes to add to the new type.
+        name (str):
+             The name of the new class.
+        bases (typing.Collection[type], optional):
+             An optional collection of base classes for the new class. Defaults to a tuple only containing Element.
+        **kwargs:
+             Arbitrary keyword arguments that will be included as class attributes.
+
     Returns:
-        type[T]: A new type that is cast to the specified generic type variable T.
+        type[T]:
+             A new class of type T that is derived from the specified base classes and includes the provided keyword arguments as class attributes.
+
     """
     return typing.cast(
         type[T],
@@ -837,28 +894,62 @@ P = typing.ParamSpec("P")
 
 class Element(typing.Generic[T]):
     """
-    A base class for representing a generic element with extended functionality for subclassing and component management.
-    This class implements mechanisms to keep track of instances and their properties, facilitate inheritance and redefinition of elements, and provide a system to create and manage associations between elements. It employs advanced typing and callable constructs to establish these sophisticated behaviors.
+    A generic base class for modeling elements within a custom framework.
+    This class serves as a template for defining various model elements by providing mechanisms to handle
+    attributes, ownership, associations, and element specialization through subclassing. It implements a
+    registry for all elements, associates unique identifiers, and handles element creation, definition,
+    redefinition, and ownership.
+    When a subclass is created, it automatically registers itself, allocates a new ID, and sets up its
+    model, owner, and type information. Subclasses can further define or redefine their structure by
+    providing additional attributes and owned elements via the `__define__` or `__redefine__` methods.
+    The `__create__` and `__create_owned_elements__` methods are responsible for instance creation,
+    and ensuring that all elements within the namespace of the created element are properly initialized.
+    The constructor '__new__' is overridden to integrate this creation process and to manage the
+    initialization flow of the newly created elements.
+
     Attributes:
-        __all_elements__ (dict[int, 'ElementType']): Class-level storage mapping element IDs to element instances.
-        __id__ (int): A unique identifier that increments with each subclass.
-        __owned_elements__ (list[int]): A list of owned elements represented by their IDs.
-        __redefined_element__ (Optional['Element']): An element that this one redefines, if applicable.
-        __associations__ (dict[str, int]): A mapping of association names to their respective element IDs.
-        __owner__ (Optional[int]): The ID of the owning element if this element is owned.
-        __type__ (type['Element']): The class type of the element.
-        __model__ (Optional[int]): The ID of the model element to which this element belongs.
-        __init__ (Callable[P, None]): A lambda function serving as a placeholder for the __init__ method.
-        model (Optional['Element']): The model element associated with this instance.
-    Class Methods:
-        __init_subclass__: Automates several processes when creating a new subclass of Element, such as ID assignment, model association, and inheriting annotations from base classes.
-        __define__: Sets up owned elements from the provided keyword arguments and organizes class namespace.
-        __redefine__: A placeholder method for redefining elements that may be implemented in subclasses.
-        __create__: Creates a new instance of the class and initializes its associations and owned elements.
-        __create_owned_elements__: Responsible for instantiating and managing owned elements.
-    Static Methods:
-        __new__: Controls the instantiation process of elements, ensuring proper associations and initialization.
-    This class is typically used as a base class for creating complex hierarchical structures with a clear definition of ownership and associations. It should not be instantiated directly but subclassed to create more specific element types.
+        __all_elements__ (dict[int, 'Element']):
+             A class attribute that acts as a registry of all
+            c        reated element instances, mapped by their unique IDs.
+        __id__ (int):
+             A class-level unique identifier for elements.
+        __owned_elements__ (list[int]):
+             A list of IDs representing elements owned by this class.
+        __redefined_element__ (Optional['Element']):
+             An element that this class may redefine.
+        __associations__ (dict[str, int]):
+             A dictionary mapping association names to their respective IDs.
+        __owner__ (Optional[int]):
+             The ID of the owner element, if any.
+        __type__ (Type['Element']):
+             The type of the class, typically set to the subclass itself.
+        __model__ (Optional[int]):
+             The ID of the model element, if any.
+        __init__ (Callable[..., None]):
+             The initialization method for the element, with a default noop
+            implemmentation.
+        model (Optional['Element']):
+             The model element associated with an instance of this class.
+        Class Methods:
+        __init_subclass__(cls, **kwargs):
+            Automatically called when a subclass is defined, used to initialize class-level attributes
+            nd register the new element.
+        __define__(cls, **kwargs):
+            Handles the definition of new elements by associating owned_elements and configuring the
+            amespace.
+        __redefine__(cls, **kwargs):
+            Designed to be overridden in subclasses to handle element redefinition.
+        __create__(cls, **kwargs) -> 'Element':
+            Responsible for creating a new instance of the class, including initializing ownership and
+            ll elements within its namespace.
+        __new__(cls:
+             type['Element'], *args: typing.Any, **kwargs) -> Union['Element', Callable[[], 'Element']]:
+            Overrides the default object instantiation process to integrate element creation and
+            nitialization management.
+        __create_owned_elements__(cls, self, all_elements:
+             dict[int, 'Element']):
+            Instantiates owned elements and ensures they are added to the current element's namespace.
+
     """
 
     __all_elements__: dict[int, "ElementType"] = {}
@@ -874,14 +965,28 @@ class Element(typing.Generic[T]):
 
     def __init_subclass__(cls, **kwargs):
         """
-        Initializes a subclass of an Element type, setting various class-level attributes necessary for the metamodeling system.
-        The method handles the initialization process when a subclass of the Element class is created, ensuring the proper setting of owned elements, associations, identifiers, and model references, as well as handling type redefinition when applicable.
+        Initializes a subclass.
+        This method is called when a new subclass of the `Element` base class is created, and it
+        performs essential setup for the new subclass, including assigning unique identifiers,
+        establishing element relationships, and initializing annotations.
+
+        Attributes for the subclass, such as owned elements, model associations, and type definitions, are
+
         Args:
-            **kwargs (dict): A variable keyword argument dictionary. Potential keywords include:
-                'name' (str): The name to assign to the subclass. If not provided, the base class name is retained.
-                'redefined_element' (Element): The Element that is being redefined by the current subclass.
+            **kwargs:
+                 Arbitrary keyword arguments. These can include:
+            name (str):
+                 The name to assign to the subclass. If not provided, the default name of the
+                subclass will be used.
+            redefined_element (Element):
+                 An optional argument specifying an element that the subclass
+                is redefining. If not provided, it is assumed this is an original definition rather than
+                a redefinition.
+
         Raises:
-            TypeError: If required attributes or arguments are missing in the keyword arguments to properly create or redefine the subclass.
+            TypeError:
+                 If the subclass does not properly specify the base type for an `Element`.
+
         """
         cls.__owned_elements__ = []
         cls.__id__ = Element.__id__ = Element.__id__ + 1
@@ -905,46 +1010,40 @@ class Element(typing.Generic[T]):
     @classmethod
     def __define__(cls, **kwargs):
         """
-        Add owned elements and set attributes on an Element class during class construction.
-                This class method is used in the class construction process to define
-                class attributes and their associations for an Element class. It operates
-                by taking a series of keyword arguments that represent different parts of
-                the class definition, handling owned elements, and setting other attributes
-                accordingly.
-                Parameters:
-                    **kwargs: Arbitrary keyword arguments.
-                        Each keyword argument represents an attribute to set on the class.
-                        Special keyword 'owned_elements' is expected to be an iterable of
-                        elements that the class will own.
-                Returns:
-                    None: This method operates in place and modifies class attributes
-                        directly, thus it has no return value.
-                Raises:
-                    Various exceptions can be raised depending on the implementation details
-                        of functions called within this method (e.g., 'add_owned_element_to',
-                        'id_of', 'is_element', 'owner_of', 'set_attribute').
-                Note:
-                    This method decorates a class method with classmethod.
+        Class method to define extra owned elements and attributes for an Element class based on provided keyword arguments.
+        This method is used to define additional owned elements and set attributes for an Element class by processing
+        keyword arguments passed to the method. Each owned element is added to the class through the
+        `add_owned_element_to` function. Subsequently, the namespace is sorted to distinguish owned elements,
+        orphans, and attributes. Attributes are set using the `set_attribute` function according to their respective sorted order.
+
+        Args:
+            **kwargs:
+                 Arbitrary keyword arguments where the key is the attribute name or owned element, and the value is its corresponding value or owned element instance.
+                The 'owned_elements' keyword argument is expected to be an iterable of owned elements that are to be added to this class.
+                Any other keyword argument corresponds to an attribute or owned element of the class that will be set or added respectively based on the type of the value provided. Attributes are set directly, whereas owned elements are added using pre-defined mechanisms while respecting ownership rules.
+                Sorting of the namespace involves determining the owned elements, orphan elements (elements without an owner), and attributes that need to be set on the class. This is performed by 'sort_namespace' nested function.
+
         """
         for owned_element in kwargs.get("owned_elements", ()):
             add_owned_element_to(cls, owned_element)
 
         def sort_namespace(namespace: dict[str, typing.Any]) -> dict[str, typing.Any]:
             """
-            Sorts a given namespace dictionary into a new dictionary, categorizing its items as orphans, owned, and attributes.
-            This function processes a namespace dictionary which contains identifiers (keys) and their corresponding elements (values).
-            It assesses each element to establish its relationship with the Element class. Based on the assessment, each item is
-            categorized as an orphan (no identified owner), owned (has an associated 'owner_of' member), or attribute (neither of the first
-            two cases, typically normal attributes or methods). Items categorized as orphans are those that don't explicitly belong to
-            any class; owned items are those that have an associated owner object; attributes are other elements that do not fall
-            into the first two categories. The resulting dictionary is a merge of these three categories, with orphans coming
-            first, followed by owned items, and finally attributes to maintain a categorized order in the namespaced items.
-            Parameters:
-                namespace (dict[str, typing.Any]): The namespace dictionary to be sorted, where keys are string identifiers
-                    of the namespace members, and values are the corresponding elements (may include classes, functions, etc.).
+            Sorts the provided namespace dictionary into a consistently ordered mapping.
+            The function segregates keys based on whether they are owned, orphaned, or regular attributes.
+            Elements in the namespace which are considered 'owned' are those where an owner is identifiable.
+            Orphaned elements have no identifiable owner, and attributes include all other elements.
+            The sorting is done based on a calculated identity for each item.
+
+            Args:
+                namespace (dict[str, typing.Any]):
+                     A dictionary representing the namespace to be sorted.
+
             Returns:
-                dict[str, typing.Any]: A new sorted dictionary with elements categorized as orphans, owned, and attributes.
-            The sorted dictionary maintains a sequence with orphans at the beginning, followed by owned entries and attributes.
+                dict[str, typing.Any]:
+                     A dictionary with keys sorted into orphans, owned, and attributes in that order.
+                    The resultant dictionary contains all elements from orphans first, followed by owned elements, and then the regular attributes, each sorted by their calculated identities.
+
             """
             owned = {}
             orphans = {}
@@ -977,40 +1076,54 @@ class Element(typing.Generic[T]):
     @classmethod
     def __redefine__(cls, **kwargs):
         """
-        A class method that provides a mechanism to dynamically redefine class attributes.
-                This method accepts keyword arguments where each key represents the attribute
-                name to be redefined, and the corresponding value represents the new value
-                for that attribute. The method is a placeholder and expected to be overridden
-                by subclasses as needed.
-                Args:
-                    **kwargs: Arbitrary keyword arguments where each key-value pair
-                        specifies the attribute to be redefined and its new value.
-                Returns:
-                    None: This method is not expected to return any value. It is meant
-                        to be used for side effects such as updating class attributes.
+        A class method to redefine properties of the class based on provided keyword arguments.
+        This method allows dynamic modification of class attributes, altering the class' behaviour
+        at runtime. The kwargs dictionary should contain attribute names and their new values.
+
+        Args:
+            **kwargs:
+                 Variable length keyword arguments. Each key corresponds to an attribute
+                name of the class, and each value is the new value to set for that
+                attribute.
+
+        Returns:
+            None:
+                 This method does not return anything.
+
         """
+        print("Redefining", cls, kwargs)
+        for key, item in kwargs.items():
+            set_attribute(cls, key, item)
         pass
 
     @classmethod
     def __create__(cls, **kwargs) -> "Element":
         """
-        Creates a new instance of the class `Element` or its subclass with given keyword arguments.
-        This class method constructs a new instance by invoking the super class's `__new__` method, setting up
-        owner reference (if provided), initializing a list to track owned elements, and assigning a unique ID.
-        It also links the instance to the model of the owner element if an owner is provided, or designates
-        the instance itself as the model. All elements including the new instance are stored in a namespace
-        dictionary. The method finally calls an internal classmethod to create any owned elements.
+        Creates an instance of the Element class with provided keyword arguments.
+        This method populates the new object's attributes, creating a namespace for the
+        core in the element. The `owner` and `all_elements` attributes are set from keyword
+        arguments if provided, otherwise, default values are assumed. Any elements owned by
+        the instance are initialized in this method.
+
         Args:
-            **kwargs: Arbitrary keyword arguments.
-                owner (Optional): The owner of this element, default is None.
-                id (Optional): The unique identifier for this element, defaults to the Python `id` of the instance.
-                all_elements (Optional) [dict]: A dictionary for namespace of the elements, default creates a
-                new dictionary with the current `cls` id mapped to the instance.
+            **kwargs:
+                 Variable length keyword arguments.
+            - 'owner' (optional):
+                 The owner of the element. Defaults to None.
+            - 'id' (optional):
+                 The identifier for the element. Defaults to the object id.
+            - 'all_elements' (optional):
+                 A dictionary of all element instances keyed by their ids.
+                Defaults to a dictionary with the current class's id_of as the key and `self` as the value.
+
         Returns:
-            Element: A newly created instance of `Element`.
-        Note:
-            The `cls` passed to the method must be a subclass of `Element` or `Element` itself.
-            The `owner` if provided, must be an instance of `Element` or its subclass.
+            Element:
+                 A new instance of the Element class or its subclass with initialized attributes.
+
+        Raises:
+            TypeError:
+                 If super().__new__(cls) does not return an instance of cls.
+
         """
         self = super().__new__(cls)
         owner = self.__owner__ = kwargs.pop("owner", None)
@@ -1019,7 +1132,7 @@ class Element(typing.Generic[T]):
         self.model = typing.cast(Element, owner).model if owner is not None else self
         all_elements = self.__all_elements__ = kwargs.pop(
             "all_elements", {id_of(cls): self}
-        )  # create a namespace for the elements in the element
+        )  # create a namespace for the core in the element
         cls.__create_owned_elements__(self, all_elements)
         return self
 
@@ -1028,22 +1141,22 @@ class Element(typing.Generic[T]):
         cls: type["Element"], *args: typing.Any, **kwargs
     ) -> typing.Union["Element", typing.Callable[[], "Element"]]:
         """
-        Creates a new instance or a callable to create an instance of the provided class 'cls'.
-        This customized static method handles the logic required to initialize a new instance of 'cls' 
-        with a focus on associating related 'Element' objects within an elements hierarchy. 
-        Initialization is deferred until the root element is reached or all associations are processed.
-        Parameters:
-            cls (type['Element']): The class of the element for which a new instance or a
-                callable to create a new instance is being created.
-            *args (typing.Any): Variable length argument list which is currently not used in the method.
-            **kwargs (typing.Any): Arbitrary keyword arguments which provide initialization data for 
-                attributes of the instance and associated elements.
+        Creates a new instance of the Element class or returns a callable that creates an instance when invoked.
+        This static method is a custom constructor for creating instances of the given `Element` class or its subclasses. It uses the private `__create__` method to construct an instance with the provided keyword arguments. If the created instance does not have an owner, it iterates through all associated elements to set their attributes based on existing associations and initializes them with the corresponding kwargs.
+        For the root element of the element tree, this method finalizes its creation and returns the new instance directly. If the instance being created is not the root element, this method returns a lambda function that, when called, returns the created instance without invoking the `__init__` method.
+
+        Args:
+            cls (type[Element]):
+                 The class of the element to create an instance of.
+            *args (typing.Any):
+                 Variable length argument list, currently not utilized in the method body.
+            **kwargs (typing.Any):
+                 Variable keyword arguments used for initializing the instance attributes.
+
         Returns:
-            typing.Union['Element', typing.Callable[[], 'Element']]: Returns either an initialized 
-                instance of 'Element' if no owner is found (root element), or a lambda function 
-                that will return the new instance, to prevent automatic calling of '__init__'.
-        Note:
-            The new instance creation in this function is implemented through the cls.__create__ method.
+            typing.Union[Element, typing.Callable[[], Element]]:
+                 An instance of the `Element` class if it is the root element, or a lambda function that returns the new instance for non-root elements.
+
         """
         self = cls.__create__(**kwargs)
         if owner_of(self) is None:
@@ -1061,20 +1174,19 @@ class Element(typing.Generic[T]):
     @classmethod
     def __create_owned_elements__(cls, self, all_elements: dict[int, "Element"]):
         """
-        A class method that initializes owned elements for an instance based on class owned elements template.
-        This method iterates through a list of element IDs specified in the class's `__owned_elements__` attribute,
-        creates instances of these elements, and adds them to the `all_elements` dictionary with the
-        ownership set to the current instance. It overrides the elements' initialization by using a
-        direct function call to bypass calling `__init__`, ensuring that the elements are created without
-        invoking their constructors. The newly created owned element instances are then added to the
-        instance's `__owned_elements__` list.
+        Class method to instantiate and associate owned elements with a class instance.
+        This method loops through the class-level collection of owned element IDs, retrieves the corresponding element from a shared class-level dictionary, instantiates it by preventing the direct call of its constructor, and finally stores the instance in a provided dictionary. This method modifies the provided dictionary in place by adding the new instances and also appends the element IDs to the instance specific owned elements list.
+
         Args:
-            self (self_type): The instance of the class that will own the newly created elements.
-            all_elements (dict[int, 'Element']): A dictionary mapping element IDs to `Element` objects where
-                the `Element` is a placeholder for the actual element class. This dictionary is updated with
-                the newly created elements.
-        Raises:
-            KeyError: If an owned_element_id in `__owned_elements__` does not exist in `__all_elements__`
+            cls (type):
+                 The class from which the method is called.
+            self (object):
+                 The instance of the class owning the new elements.
+            all_elements (dict[int, 'Element']):
+                 A dictionary mapping element IDs to their corresponding 'Element' instances.
+
+        Notes:
+
         """
         for owned_element_id in cls.__owned_elements__:
             owned_element = cls.__all_elements__[owned_element_id]

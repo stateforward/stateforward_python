@@ -1,59 +1,37 @@
 """
 
-A module for generating PlantUML diagrams from state machine models.
+The `plantuml_generator` module is part of the `stateforward` package and is responsible for generating PlantUML diagrams that visualize state machines defined using the `stateforward` framework. This module includes a `PlantUMLGenerator` class that traverses the elements of a state machine model and compiles them into a PlantUML representation. It relies heavily on the visitor design pattern to process various elements such as states, transitions, regions, and pseudostates.
 
-This module contains classes and functions that allow a user to create UML diagrams
-in the PlantUML language by traversing through state machine models. It uses the
-`Visitor` design pattern to visit different elements of the state machine and
-converts them to a corresponding PlantUML representation.
+## Classes and Methods:
 
-Classes:
-    PlantUMLStyle:
-        A class used to configure the visual style of the generated UML diagram.
-        It currently acts as a placeholder without any implementation details.
+- `PlantUMLStyle`: A placeholder class that presumably would hold styling configurations for UML diagrams but currently lacks implementation details.
 
-    PlantUMLGenerator(model.Visitor):
-        A class that extends the `Visitor` pattern for generating PlantUML diagrams.
-        It creates a textual representation of a given state machine model that can
-        be rendered by PlantUML.
+- `PlantUMLGenerator`: A class inheriting from `model.Visitor` designed to generate UML diagrams.
+  - `__init__(self, direction: str='LR', background_color: str='#000000')`: Initializes the generator with a specified direction for layout and a background color.
+  - `visit_state_machine`: Processes the top-level state machine element.
+  - `visit_composite_state`: Handles composite states within the state machine.
+  - `visit_region`: Processes regions which can contain multiple sub-states or vertices. 
+  - `visit_state`: Handles the generation of UML representation for states.
+  - `visit_vertex`: Directs the processing of vertices to either a standard state or a pseudostate handler based on its type.
+  - `visit_constraint`: Processes constraints associated with transitions.
+  - `visit_transition`: Handles the transitions between states including events and guards.
+  - `visit_pseudostate`: Manages pseudostates such as initial, fork, join, entry point, exit point, and choice, which are special state types in UML state diagrams.
+  - `generate`: Orchestrates the entire rendering process of the state machine model to a PlantUML diagram format.
 
-        Attributes:
-            direction (str): The direction of the diagram layout (e.g., 'LR' for
-                left to right).
-            background_color (str): The color used for the diagram's background.
-            cursor (Cursor): An instance of `Cursor` used to build the PlantUML text
-                as elements are visited.
+## Helper Objects and Variables:
 
-        Methods:
-            __init__(self, direction, background_color):
-                Initializes a new instance of the PlantUML generator.
+- `Cursor`: A utility class used for keeping track of the current position while appending lines to the PlantUML diagram.
+- `logger`: A preconfigured logger for the module, utilizing the `create_logger` function from `stateforward.state_machine.log`.
+- `T = TypeVar('T')`: A generic type variable used in type annotations within the module.
 
-            visit_*(self, element, cursor):
-                Methods with names following the pattern 'visit_*' are overridden
-                visiting methods for visiting specific state machine elements.
-                Each visiting method takes an element and a cursor and processes the
-                element, appending the appropriate PlantUML syntax to the cursor.
+## Usage:
 
-            qualified_name(self, element):
-                Generates a qualified name for a given state machine element that is
-                compatible with PlantUML's naming requirements.
+The module is designed for internal use within the `stateforward` framework and should be invoked by other components of the framework needing to visualize state machine structures as PlantUML diagrams. Developers can instantiate the `PlantUMLGenerator` with appropriate parameters and call the `generate` method with a state machine model to create a PlantUML depiction. The current implementation omits direct user interaction details and example code snippets to focus on the structural and functional aspects of the module.
 
-            generate(self, model):
-                Initiates the traversal of a state machine model and generates the
-                PlantUML diagram. It returns the diagram as a string of PlantUML code.
-
-Functions:
-    create_logger(name):
-        Creates and configures a logger for the PlantUML generator module.
-
-Type Aliases:
-    T:
-        A generic type variable used for type hinting within the module.
-
-Note: Documentation automatically generated by https://undoc.ai
+Overall, `plantuml_generator` is a specialized module intended to work with the `stateforward` package's state machines, providing a textual UML diagram output for visualization purposes.
 """
 from stateforward import model
-from stateforward import elements
+from stateforward import core
 from stateforward.state_machine.log import create_logger
 from typing import Type, TypeVar
 import inspect
@@ -66,58 +44,74 @@ logger = create_logger("plantuml")
 
 class PlantUMLStyle:
     """
-        A class representing the styling applied to diagrams generated in PlantUML.
-        The PlantUMLStyle class encapsulates various style parameters such as color
-        schemes, line styles, font settings, and other visual aspects that can be
-        applied to create a consistent look and feel for PlantUML diagrams.
-        Attributes:
-            None defined.
-        Methods:
-            The class currently does not define any methods.
-        Note:
-            This class is a placeholder and does not currently implement any functionality.
-            It may be extended in the future to include methods for handling style presets,
-            or for applying styles to PlantUML elements.
+    A class dedicated to defining the styles and aesthetics for PlantUML diagrams.
+    This class encapsulates all the styling choices such as colors, line styles, font types, and any other
+    visual settings that can be applied to generate uniform and aesthetically pleasing PlantUML diagrams.
+    The class does not contain any methods, properties, or attributes by default and serves as a template
+    for extending with specific styling configurations.
+    
+    Attributes:
+    
+    Methods:
+    
+    Note:
+
     """
+
     pass
 
 
 class PlantUMLGenerator(model.Visitor):
     """
-    A visitor class that generates PlantUML diagrams from given state machine models.
-        This class walks through a state machine model and produces text in PlantUML format that
-        describes the layout and transitions of the state machine. The resulting PlantUML text
-        can be used to create visual diagrams of the state machine's structure. The generator
-        formats the output to be visually consistent with a predefined style, using orthographic
-        lines, a specific color scheme for arrows, background, activity bars, states, borders,
-        and text.
-        Attributes:
-            direction (str): A string indicating the direction in which state transitions should
-                             be laid out in the resulting diagram. Defaults to 'LR' (left to right).
-            background_color (str): A hexadecimal string that represents the background color
-                                    for the diagram. Defaults to '#000000' (black).
-        The class contains multiple 'visit_' methods, each responsible for handling different
-        elements of the state machine, such as `visit_state_machine`, `visit_composite_state`,
-        `visit_region`, `visit_state`, `visit_vertex`, `visit_constraint`, `visit_transition`,
-        and `visit_pseudostate`. Each 'visit_' method processes its respective element and
-        appends the generated PlantUML code to the cursor's content.
-        The `generate` method initiates the generation process, and upon completion, returns
-        the resulting PlantUML diagram as a string.
+    A class for generating PlantUML diagrams from a model of a state machine.
+    The PlantUMLGenerator class is used to produce PlantUML diagrams that represent state
+    machines. It leverages the visitor design pattern to traverse the model and generate
+    a textual representation that can be used to create UML diagrams.
+    
+    Attributes:
+        direction (str):
+             The direction of the diagram (e.g., 'LR' for left-to-right).
+        background_color (str):
+             The background color of the diagram in hex format.
+    
+    Methods:
+        __init__:
+             Constructor for initializing the PlantUMLGenerator with optional direction and background color.
+        visit_state_machine:
+             Processes the state machine model to generate the PlantUML representation.
+        visit_composite_state:
+             Visits a composite state and generates its representation.
+        qualified_name:
+             Helper method to provide a qualified name suitable for PlantUML.
+        visit_region:
+             Visits a region within the state machine diagram and generates its representation.
+        visit_state:
+             Visits a state and generates its representation in the diagram.
+        visit_vertex:
+             High-level method for visiting vertices which can either be states or pseudostates.
+        visit_constraint:
+             Visits a constraint to include its description or name in the diagram.
+        visit_transition:
+             Visits a transition between states and generates its representation in the diagram.
+        visit_pseudostate:
+             Visits pseudostates like initial, choice, fork, entry or exit point, and join, generating their representations.
+        generate:
+             Finalizes the generation process by outputting the PlantUML string representation of the model.
+            This class assumes all necessary types and classes it uses from the model module are available within the scope it operates in.
+
     """
+
     def __init__(self, direction: str = "LR", background_color: str = "#000000"):
         """
-        Initializes a new instance of the class.
-                This constructor initializes a new instance with a specified direction
-                and background color for the diagram that it will operate on. It sets up
-                default styling parameters for the diagram, including line type, arrow
-                color, background color, bar color, font style, and state style. It also
-                instantiates a new `Cursor` object with a starting UML definition that
-                is pre-formatted with these styles.
-                Args:
-                    direction (str, optional): The direction of layout for the diagram.
-                        Default to 'LR' which stands for left-to-right.
-                    background_color (str, optional): The hexadecimal color value for the
-                        diagram's background. Defaults to '#000000' which is black.
+        Initializes a new instance with specified diagram properties.
+        This constructor initializes the diagram with custom direction and background color. It sets a default cursor with a predefined UML start notation, skin parameters, and styles suitable for generating diagrams.
+        
+        Args:
+            direction (str, optional):
+                 The direction that diagram elements should be laid out. Defaults to 'LR' (left to right).
+            background_color (str, optional):
+                 The hexadecimal color code for the diagram's background. Defaults to '#000000' (black).
+
         """
         super().__init__()
         self.cursor = Cursor(
@@ -141,19 +135,26 @@ skinparam State {
         self.direction = direction
 
     def visit_state_machine(
-        self, state_machine: Type["elements.StateMachine"], cursor: Cursor
+        self, state_machine: Type["core.StateMachine"], cursor: Cursor
     ):
         """
-            Visits a StateMachine object, processes its components and constructs its corresponding representation.
-            This method traverses a state machine, starting with the given state_machine instance. It then iteratively visits and processes
-            all the owned elements of the state machine, such as states and transitions. As it visits each element, it generates and appends the
-            appropriate representation to the given cursor. This representation includes the name and qualified name of states, as well as the
-            transitions between states, along with their associated events if any.
-            Args:
-                state_machine (Type['elements.StateMachine']): The StateMachine object to visit.
-                cursor (Cursor): The Cursor object where the resulting string representation of the state machine is appended to.
-            Returns:
-                bool: Always returns True, indicating successful visitation.
+        Visits the state machine and generates a structured description of its states and transitions.
+        The function processes the state machine by appending the state machine's name to the cursor's content
+        as a state block. Within this block, it recursively visits any composite states to capture their nested
+        structure. The function then goes through each owned element of the state machine. If the element is a
+        transition and its source is not a pseudostate, it formats the transition's details and appends them to the
+        cursor.
+        
+        Args:
+            state_machine (Type['core.StateMachine']):
+                 The state machine to visit.
+            cursor (Cursor):
+                 A mutable sequence of strings to which the formatted description is appended.
+        
+        Returns:
+            bool:
+                 Always returns True.
+
         """
         cursor.append(
             f'state "{model.name_of(state_machine)}" as {self.qualified_name(state_machine)} {{\n',
@@ -161,8 +162,8 @@ skinparam State {
         self.visit_composite_state(state_machine, cursor=cursor)
         for element in model.all_owned_elements_of(state_machine):
             if model.element.is_subtype(
-                element, elements.Transition
-            ) and not model.element.is_subtype(element.source, elements.Pseudostate):
+                element, core.Transition
+            ) and not model.element.is_subtype(element.source, core.Pseudostate):
                 events = ""
                 if element.events:
                     events = "|".join(event.name for event in element.events.elements())
@@ -173,20 +174,23 @@ skinparam State {
 
     def visit_composite_state(
         self,
-        composite_state: Type["elements.CompositeState"],
+        composite_state: Type["core.CompositeState"],
         cursor: Cursor = None,
     ):
         """
-            Visits a composite state in the context of a state machine and appends the necessary formatting to a cursor.
-            This function is responsible for handling the traversal and formatting of a composite state,
-            which may contain one or more regions, and adds the formatted structure to the provided cursor.
-            It also handles the inclusion of the composite state's documentation as a note, if available.
-            Args:
-                composite_state: The `CompositeState` object representing the composite state in the state machine.
-                cursor: An optional `Cursor` instance where the formatted output will be appended. If not provided,
-                        a new instance will be created internally.
-            Returns:
-                bool: Always returns True to indicate successful visitation of the composite state.
+        Visits a composite state in the state machine, appending its representation to the provided cursor with proper indentation.
+        Traverses the regions within the given composite state, leveraging the 'auto_indent' context manager for correct indentation. If the composite state has a description, it also appends a note with the description at the top of the composite state's representation.
+        
+        Args:
+            composite_state (Type['core.CompositeState']):
+                 The composite state to visit, it should be a type from the 'core' module.
+            cursor (Cursor, optional):
+                 The cursor instance where the composite state's representation will be appended. If None, a new Cursor instance will be used.
+        
+        Returns:
+            bool:
+                 Returns True to indicate the visit has been successfully completed.
+
         """
         region = composite_state.region
         with cursor.auto_indent(indent=2) as _cursor:
@@ -204,25 +208,38 @@ skinparam State {
 
     def qualified_name(self, element: Type[model.Element]):
         """
-        Generates a modified qualified name for the given element where periods are replaced with underscores.
+        Generates a modified version of an element's qualified name by replacing all the periods with underscores.
+        
         Args:
-            element (Type[model.Element]): The element for which to generate the qualified name.
+            element (Type[model.Element]):
+                 The element whose qualified name will be modified.
+        
         Returns:
-            str: A string representing the qualified name of the element with periods replaced by underscores.
+            str:
+                 A string representing the qualified name of the element with periods replaced by underscores.
+        
+        Raises:
+            AttributeError:
+                 If the element does not have a `qualified_name` attribute or if it is not of type `str`.
+
         """
         return element.qualified_name.replace(".", "_")
 
-    def visit_region(self, region: Type["elements.Region"], cursor: Cursor):
+    def visit_region(self, region: Type["core.Region"], cursor: Cursor):
         """
-        Visits a region and processes its vertices, adding PlantUML state definition and transitions for statecharts.
-        Given a `Region` object, this function will examine it to determine whether a new state definition needs to be created, handling subvertices as necessary. If the `Region`'s name does not start with 'region_', a new state definition is started and subvertices are given their own block within the state definition. Otherwise, subvertices are processed directly within the current scope.
-        This function iterates over the subvertices of the given `Region`. For each subvertex, it delegates processing to the `visit_vertex` method by passing the vertex and the current cursor for documentation construction.
-        The function appends a special entry state arrow notation '[*] --> StateName' if the region has subvertices, followed by the state definition and subvertex details.
+        Visits and processes a region in a StateMachine, formatting the output to show the structure and transitions of the region.
+        This function takes the `region` object, which is supposed to be an instance or subclass of `core.Region`, and a `Cursor` object used for managing indentation and organization in the output. It starts by checking the length of the `subvertex` attribute of the region; if there are subvertices present, it proceeds to handle region naming and formatting. In the case where the region's name does not start with 'region_', it formats the entry point, defines a state with the region’s qualified name, and an auto-indented block is started for the subvertices. Each subvertex is visited and processed recursively. If the region name starts with 'region_', it instead visits each vertex directly without additional structuring. The function returns `True` upon completion.
+        
         Args:
-            region (Type['elements.Region']): The region to visit and process for PlantUML documentation.
-            cursor (Cursor): A `Cursor` object to maintain the current position in the documentation structure and to which the state definition will be appended.
+            region (Type['core.Region']):
+                 The region to visit and process.
+            cursor (Cursor):
+                 A `Cursor` instance for output formatting and indentation.
+        
         Returns:
-            bool: Always returns `True` to signal successful processing of the region.
+            bool:
+                 True if the region is successfully visited and processed.
+
         """
         if region.subvertex.length:
             if not region.name.startswith("region_"):
@@ -240,16 +257,19 @@ skinparam State {
 
         return True
 
-    def visit_state(self, state: type["elements.State"], cursor: Cursor):
+    def visit_state(self, state: type["core.State"], cursor: Cursor):
         """
-        Extends the current object with the given items.
-            This method allows for adding multiple items to the current object by unpacking
-            a variable number of arguments, each of which can be either a string or an instance
-            of 'Cursor'. The method uses polymorphism, calling the 'extend' method of a superclass
-            to handle the actual operation.
-            Args:
-                *items (Union[str, 'Cursor']): A variable number of arguments which can either be
-                    strings or 'Cursor' instances.
+        Visits a state in the state machine and appends its representation to the cursor.
+        
+        Args:
+            state (core.State):
+                 The state to visit. Can be either a simple state or a composite state
+                with a submachine.
+            cursor (Cursor):
+                 The cursor where the state representation will be appended.
+        
+        Returns:
+
         """
         name = (
             state.name
@@ -261,46 +281,65 @@ skinparam State {
         )
         return self.visit_composite_state(state, cursor=cursor)
 
-    def visit_vertex(self, vertex: Type["elements.Vertex"], cursor: Cursor):
+    def visit_vertex(self, vertex: Type["core.Vertex"], cursor: Cursor):
         """
-        Visits a given vertex during a cursor traversal in a graph or state machine model.
-        This method determines the type of vertex being visited and delegates to the appropriate handling method. If the vertex is identified as a kind of pseudostate, it is handed off to the `visit_pseudostate` method. Otherwise, it is processed by the `visit_state` method.
+        Visits a vertex within the state machine and determines the action based on its type.
+        This method checks if the given vertex is a subtype of a pseudostate and delegates to the appropriate visit method based on this check. If the vertex is a pseudostate, `visit_pseudostate` is called. Otherwise, `visit_state` is called.
+        
         Args:
-            vertex (Type['elements.Vertex']): The vertex object that needs to be visited. Must be an instance or subclass of 'elements.Vertex'.
-            cursor (Cursor): The cursor object representing the current position in the traversal or the entity used to navigate the model.
+            vertex (Type['core.Vertex']):
+                 The vertex to be visited, which can be a state or a pseudostate within the state machine.
+            cursor (Cursor):
+                 The cursor representing the current position within the state machine's transition sequence.
+        
         Returns:
-            The result of the delegated `visit_pseudostate` or `visit_state` method, depending on the type of the vertex.
+
         """
-        if model.model.is_subtype(vertex, elements.Pseudostate):
+        if model.model.is_subtype(vertex, core.Pseudostate):
             return self.visit_pseudostate(vertex, cursor)
         return self.visit_state(vertex, cursor)
 
-    def visit_constraint(self, constraint: Type["elements.Constraint"], cursor: Cursor):
+    def visit_constraint(self, constraint: Type["core.Constraint"], cursor: Cursor):
         """
-            Visit and process a constraint during tree traversal.
-            This method is responsible for visiting a constraint and appends its documented
-            condition or name to the provided cursor. If the constraint condition has a
-            docstring, it uses the docstring, otherwise, it uses the condition's
-            function name.
-            Args:
-                constraint (Type['elements.Constraint']): The constraint element to visit.
-                cursor (Cursor): The cursor to which the constraint information will be appended.
-            Returns:
-                bool: Always returns True to indicate successful processing of the constraint.
+        Visits a constraint within the context of a cursor operation.
+        This method is used to append the documentation or name of a constraint's condition to the cursor. If the constraint's condition has a docstring, it will be used; otherwise, the name of the condition method will be used.
+        
+        Args:
+            constraint (Type['core.Constraint']):
+                 The constraint object to visit. It should have a condition attribute representing the constraint logic.
+            cursor (Cursor):
+                 The cursor object where the documentation or name of the constraint's condition is to be appended.
+        
+        Returns:
+            bool:
+                 Returns True to indicate the visit was successful.
+
         """
         doc = inspect.getdoc(constraint.condition)
         cursor.append(f": [{doc or constraint.condition.__name__}]")
         return True
 
-    def visit_transition(self, transition: Type["elements.Transition"], cursor: Cursor):
+    def visit_transition(self, transition: Type["core.Transition"], cursor: Cursor):
         """
-        Visits a transition element within a state machine or process flow.
-        This method appends a formatted string representation of the transition to the given cursor. The string includes the source and target states of the transition, connected by an arrow. If the transition has associated events, their names are concatenated, separated by the pipe character, and added to the cursor. If the transition has a guard (a constraint), the `visit_constraint` method is called with the guard and cursor as arguments. The method concludes by appending a newline character to the cursor and returning True to indicate successful visitation.
+        Visits a transition in a state machine to generate a formatted string representation of the transition.
+        This method constructs a formatted string that represents a transition in the
+        state machine. The string includes the qualified names of the source and target
+        states, connected by an arrow. If the transition is triggered by events, their
+        names are also included, separated by a pipe '|' character. Furthermore, if a
+        guard condition is associated with the transition, the `visit_constraint` method
+        is called to process it. The final representation of the transition is appended
+        to the cursor.
+        
         Args:
-            transition (Type['elements.Transition']): The transition element to visit.
-            cursor (Cursor): The cursor to which the transition representation is appended.
+            transition (Type['core.Transition']):
+                 The transition to visit.
+            cursor (Cursor):
+                 The cursor object used to accumulate the transition strings.
+        
         Returns:
-            bool: Always returns True to indicate the transition was successfully visited.
+            bool:
+                 Always returns True to indicate successful processing of the transition.
+
         """
         cursor.append(
             f"{self.qualified_name(transition.source)} --> {self.qualified_name(transition.target)}"
@@ -314,48 +353,57 @@ skinparam State {
         cursor.append("\n")
         return True
 
-    def visit_pseudostate(
-        self, pseudostate: Type["elements.Pseudostate"], cursor: Cursor
-    ):
+    def visit_pseudostate(self, pseudostate: Type["core.Pseudostate"], cursor: Cursor):
         """
-            Visit the given pseudostate and use its kind to determine the correct notation.
-            This method is responsible for appending specific notations to the 'cursor'
-            depending on the kind of pseudostate encountered. Notations are appended as
-            strings depicting UML representations of pseudostates such as initial, choice, fork,
-            entry point, exit point, and join.
-            Args:
-                pseudostate (Type['elements.Pseudostate']): The pseudostate to visit.
-                cursor (Cursor): The cursor object where notations will be appended as the pseudostate is processed.
-            Returns:
-                bool: Always returns True as an indication of successful execution.
+        Visits a pseudostate node within a state machine and appends relevant PlantUML description to the given cursor buffer based on the pseudostate kind.
+        
+        Args:
+            self:
+                 The instance of the class.
+            pseudostate (Type['core.Pseudostate']):
+                 The pseudostate node to visit.
+            cursor (Cursor):
+                 A mutable list-like object where the generated PlantUML is incrementally being stored.
+        
+        Returns:
+            bool:
+                 Always returns True, indicating the visit was completed.
+            Each pseudostate kind results in a different handling and output string formatting:
+                - If it's an initial pseudostate, it creates a transition from the initial node to its target state.
+                - If it's a choice pseudostate, it defines the pseudostate as a choice node and processes its outgoing transitions.
+                - If it's a fork pseudostate, it defines the pseudostate as a fork node and processes its outgoing transitions.
+                - If it's an entry point pseudostate, it defines the pseudostate as an entry point node and processes its outgoing transitions.
+                - If it's an exit point pseudostate, it defines the pseudostate as an exit point node.
+                - If it's a join pseudostate, it defines the pseudostate as a join node and processes the first outgoing transition only.
+
         """
-        if pseudostate.kind is elements.PseudostateKind.initial:
+        if pseudostate.kind is core.PseudostateKind.initial:
             transition = tuple(pseudostate.outgoing.elements())[0]
             cursor.append(f"[*] --> {self.qualified_name(transition.target)}\n")
-        elif pseudostate.kind is elements.PseudostateKind.choice:
+        elif pseudostate.kind is core.PseudostateKind.choice:
             cursor.append(
                 f'state "{pseudostate.name}" as  {self.qualified_name(pseudostate)} <<choice>>\n'
             )
             for transition in pseudostate.outgoing.elements():
                 self.visit_transition(transition, cursor)
-        elif pseudostate.kind is elements.PseudostateKind.fork:
+        elif pseudostate.kind is core.PseudostateKind.fork:
             cursor.append(
                 f'state "{pseudostate.name}" as  {self.qualified_name(pseudostate)} <<fork>>\n'
             )
             for transition in pseudostate.outgoing.elements():
                 self.visit_transition(transition, cursor)
-        elif pseudostate.kind is elements.PseudostateKind.entry_point:
+        elif pseudostate.kind is core.PseudostateKind.entry_point:
             cursor.append(
                 f'state "{pseudostate.name}" as  {self.qualified_name(pseudostate)} <<entryPoint>>\n'
             )
             for transition in pseudostate.outgoing.elements():
                 self.visit_transition(transition, cursor)
-        elif pseudostate.kind is elements.PseudostateKind.exit_point:
+        elif pseudostate.kind is core.PseudostateKind.exit_point:
             cursor.append(
                 f'state "{pseudostate.name}" as  {self.qualified_name(pseudostate)} <<exitPoint>>\n'
             )
 
-        elif pseudostate.kind is elements.PseudostateKind.join:
+        elif pseudostate.kind is core.PseudostateKind.join:
             cursor.append(
                 f'state "{pseudostate.name}" as  {self.qualified_name(pseudostate)} <<join>>\n'
             )
@@ -364,17 +412,21 @@ skinparam State {
 
     def generate(self, model: type[model.Model]) -> str:
         """
-            Generates a UML diagram representation for the given model class.
-            This function traverses the elements of the provided model class, using a cursor
-            to append the UML representation to an internal string builder. After visiting
-            all the elements and constructing the diagram, it appends an end tag (@enduml)
-            to mark the termination of the UML diagram. It then converts the internal 
-            representation to a string and prints it to the console. Finally, the string
-            representation of the UML diagram is returned.
-            Args:
-                model (type[model.Model]): The model class for which to generate the UML diagram.
-            Returns:
-                str: A string representation of the UML diagram for the provided model class.
+        Generates a Unified Modeling Language (UML) representation of the specified model.
+        This method processes the specified model element using `visit_element` to navigate
+        and collect UML-related data. After the visitation process, it appends an '@enduml' tag at the
+        end of the UML diagram data collected in the `cursor`. This data is then aggregated into a
+        string which represents the UML diagram for the model and returned.
+        
+        Args:
+            model (type[model.Model]):
+                 The model to generate UML for. It has to be of a type that
+                subclasses `model.Model`.
+        
+        Returns:
+            str:
+                 A string representation of the UML diagram generated for the provided model.
+
         """
         self.visit_element(model, self.cursor)
         self.cursor.append("@enduml\n")
