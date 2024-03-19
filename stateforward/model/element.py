@@ -1091,7 +1091,6 @@ class Element(typing.Generic[T]):
                  This method does not return anything.
 
         """
-        print("Redefining", cls, kwargs)
         for key, item in kwargs.items():
             set_attribute(cls, key, item)
         pass
