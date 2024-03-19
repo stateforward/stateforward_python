@@ -108,11 +108,12 @@ def send(
 
     """
     if element is None:
+        print(model.Model.__all_instances__)ƒaf
         return [
             model.of(element).interpreter.send(event)
-            for element in model.all_instances().values()
+            for element in model.Model.__all_instances__.values()
         ]
 
     if isinstance(element, str):
-        element = model.all_instances()[element]
+        element = model.Model.__all_instances__[element]
     return model.of(element).interpreter.send(event)

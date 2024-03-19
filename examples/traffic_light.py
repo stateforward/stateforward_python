@@ -127,6 +127,10 @@ class Signal(sf.AsyncStateMachine):
     class On(sf.State):
         pass
 
+    def set_flashing(self, *args, **kwargs):
+        print("setting flashing to True")
+        self.flashing = True
+
     initial = sf.initial(On)
     transitions = sf.collection(
         sf.transition(
@@ -141,11 +145,7 @@ class Signal(sf.AsyncStateMachine):
             target=On,
             guard=lambda self, event: self.context.flashing,
         ),
-        *sf.transition(
-            FlashingEvent,
-            source=(On, Off),
-            effect=lambda self, event: setattr(self.context, "flashing", True),
-        ),
+        sf.transition(FlashingEvent, source=On, effect=set_flashing),
     )
 
 
@@ -159,7 +159,7 @@ def send_flashing_event(self, event):
 
 
 def send_walk_event(self, event):
-    print("Sending walk event")
+    # print("Sending walk event", self.model.On)
     sf.send(WalkEvent(), self.model)
 
 
@@ -179,20 +179,18 @@ class TrafficLight(sf.AsyncStateMachine):
 
     class On(sf.State):
         class Pedestrian(sf.Region):
-            class DontWalk(sf.State):
-                signal = sf.submachine_state(Signal)
+            dont_walk = sf.submachine_state(Signal, name="dont_walk")
 
-            class Walk(sf.State):
-                signal = sf.submachine_state(Signal)
+            walk = sf.submachine_state(Signal, name="walk")
 
-            initial = sf.initial(target=DontWalk)
+            initial = sf.initial(target=dont_walk)
             transitions = sf.collection(
                 sf.transition(
-                    WalkEvent, source=DontWalk, target=Walk, guard=walk_guard
+                    WalkEvent, source=dont_walk, target=walk, guard=walk_guard
                 ),
                 sf.transition(
                     sf.after(seconds=3),
-                    source=Walk,
+                    source=walk,
                     effect=send_flashing_event,
                 ),
             )
@@ -217,7 +215,6 @@ WALK = "🚶"
 
 
 def display(tl: "TrafficLight"):
-    print(tl.state, tl.On.Pedestrian.DontWalk.signal.flashing)
     if tl.interpreter.is_active(tl.On.red):
         color = "🔴"
     elif tl.interpreter.is_active(tl.On.yellow):
@@ -226,9 +223,9 @@ def display(tl: "TrafficLight"):
         color = "🟢"
     else:
         color = "⚫️"
-    if tl.interpreter.is_active(tl.On.Pedestrian.Walk):
+    if tl.interpreter.is_active(tl.On.Pedestrian.walk):
         pedestrian = WALK
-    elif tl.interpreter.is_active(tl.On.Pedestrian.DontWalk):
+    elif tl.interpreter.is_active(tl.On.Pedestrian.dont_walk):
         pedestrian = DONT_WALK
     else:
         pedestrian = None

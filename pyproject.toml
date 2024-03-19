@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "stateforward"
-version = "0.2.91"
+version = "0.2.92"
 description = ""
 authors = ["Gabriel Willen <gabewillen@gmail.com>"]
 readme = "README.md"
