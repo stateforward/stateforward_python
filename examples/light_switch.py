@@ -133,9 +133,8 @@ The `stateforward.example.light_switch` module serves as an educational tool for
 
 To learn more about other parts of the `stateforward` framework or to adapt the light switch example for your own use case, please refer to the rest of the documentation.
 """
-import stateforward as sf
 import asyncio
-from dataclasses import dataclass
+import stateforward as sf
 
 
 class OnEvent(sf.Event):
@@ -149,11 +148,6 @@ class OffEvent(sf.Event):
 class PrintBehavior(sf.Behavior):
     def activity(self, event: sf.Event = None):
         pass
-
-
-@dataclass(unsafe_hash=True)
-class FooEvent(sf.Event):
-    foo: str
 
 
 class LightSwitch(sf.AsyncStateMachine):
@@ -182,10 +176,6 @@ class LightSwitch(sf.AsyncStateMachine):
     )
 
 
-class ThreeWay(LightSwitch):
-    pass
-
-
 if __name__ == "__main__":
 
     async def light_switch_main():
@@ -196,14 +186,10 @@ if __name__ == "__main__":
         # output the current states of the state machine
         print(light_switch.state)
         # dispatch a OnEvent to the state machine
-        task = await sf.send(OnEvent(), light_switch)
-        print("->", task)
+        await sf.send(OnEvent(), light_switch)
+        # output the current states of the state machine
         print(light_switch.state)
+        # dispatch a OffEvent to the state machine
         await sf.send(OffEvent(), light_switch)
-        print(light_switch.state)
-        light_switch.flashing = True
-        await asyncio.sleep(2)
-        print(light_switch.state)
-        print(light_switch, light_switch.flashing)
 
     asyncio.run(light_switch_main())

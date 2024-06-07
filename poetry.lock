@@ -176,20 +176,6 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
-name = "pydocstringformatter"
-version = "0.7.3"
-description = "A tool to automatically format Python docstrings that tries to follow recommendations from PEP 8 and PEP 257."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "pydocstringformatter-0.7.3-py3-none-any.whl", hash = "sha256:3654f52c49fc729b49712d1e7c49384dfd253bdffeda4939e79dab31491c563f"},
-    {file = "pydocstringformatter-0.7.3.tar.gz", hash = "sha256:dfcc07bec1706803d563275e282ef9e629b02dc19983ec6778d07a9f500bb62b"},
-]
-
-[package.dependencies]
-tomli = {version = ">=1.1.0", markers = "python_version < \"3.11\""}
-
-[[package]]
 name = "pygls"
 version = "1.2.1"
 description = "A pythonic generic language server (pronounced like 'pie glass')"
@@ -318,4 +304,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "b14d50730de39253641a3c9006fb48f1605dcb1f83b37638ff44368b72c5f08c"
+content-hash = "d4250f45df6a60d736a2aba576dd4ecce6d229916df1a39003e8e10ad66ef44a"
